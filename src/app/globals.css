@@ -128,6 +128,6 @@
   }
 
   html {
-    @apply --font-sans: var(--font-poppins);;
+    @apply font-sans;
   }
 }
