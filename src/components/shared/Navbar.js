@@ -1,14 +1,12 @@
-import Sidebar from "@/components/shared/Sidebar";
-import Navbar from "@/components/shared/Navbar";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 
-export default function DashboardLayout({ children }) {
+export default function Navbar() {
     return (
-        <div className="flex min-h-screen">
-            <Sidebar />
-            <div className="flex flex-1 flex-col">
-                <Navbar />
-                <main className="flex-1 bg-muted/20 p-6">{children}</main>
-            </div>
-        </div>
+        <header className="flex h-14 items-center justify-between border-b border-border bg-background px-4">
+            <span className="text-sm text-muted-foreground">Welcome back</span>
+            <Avatar className="h-8 w-8">
+                <AvatarFallback>NP</AvatarFallback>
+            </Avatar>
+        </header>
     );
 }
