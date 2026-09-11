@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import toast from "react-hot-toast";
@@ -10,6 +10,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import { CATEGORIES } from "@/lib/data/products";
 import { useInventoryStore } from "@/lib/store/inventory-store";
 
@@ -28,6 +35,7 @@ export default function InventoryPage() {
 
     const {
         register,
+        control,
         handleSubmit,
         reset,
         formState: { errors, isSubmitting },
@@ -64,17 +72,24 @@ export default function InventoryPage() {
                             </div>
                             <div className="flex flex-col gap-1.5">
                                 <Label htmlFor="category">Category</Label>
-                                <select
-                                    id="category"
-                                    {...register("category")}
-                                    className="h-9 rounded-full border border-input bg-input/30 px-3 text-sm text-foreground outline-none focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50"
-                                >
-                                    {CATEGORIES.filter((c) => c !== "All").map((c) => (
-                                        <option key={c} value={c}>
-                                            {c}
-                                        </option>
-                                    ))}
-                                </select>
+                                <Controller
+                                    name="category"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Select value={field.value} onValueChange={field.onChange}>
+                                            <SelectTrigger id="category">
+                                                <SelectValue placeholder="Select category" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {CATEGORIES.filter((c) => c !== "All").map((c) => (
+                                                    <SelectItem key={c} value={c}>
+                                                        {c}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                />
                             </div>
                             <div className="flex flex-col gap-1.5">
                                 <Label htmlFor="price">Price (Rs.)</Label>
@@ -130,10 +145,7 @@ export default function InventoryPage() {
                                         </span>
                                     </td>
                                     <td className="px-4 py-3 text-right">
-                                        <button
-                                            onClick={() => removeItem(item.id)}
-                                            className="text-muted-foreground hover:text-destructive"
-                                        >
+                                        <button onClick={() => removeItem(item.id)} className="text-muted-foreground hover:text-destructive">
                                             <Trash2 className="h-4 w-4" />
                                         </button>
                                     </td>
