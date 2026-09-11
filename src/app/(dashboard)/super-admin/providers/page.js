@@ -5,14 +5,16 @@ export default function ProvidersPage() {
     return (
         <div>
             <div className="mb-6 flex items-center justify-between">
-                <h1 className="text-2xl font-semibold">Providers</h1>
+                <h1 className="text-2xl font-semibold text-foreground">Providers</h1>
                 <Button>Add Provider</Button>
             </div>
             <Card>
-                <CardHeader><CardTitle className="text-sm text-muted-foreground">Provider list</CardTitle></CardHeader>
+                <CardHeader>
+                    <CardTitle className="text-sm text-muted-foreground">Provider list</CardTitle>
+                </CardHeader>
                 <CardContent>
                     <p className="text-sm text-muted-foreground">
-                        Abhi koi Provider add nahi hua. (Prisma set hone ke baad data yahan aayega.)
+                        No providers added yet. (Data will appear here once Prisma is set up.)
                     </p>
                 </CardContent>
             </Card>
