@@ -6,7 +6,8 @@ import { Search, Plus, Minus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
-import { PRODUCTS, CATEGORIES } from "@/lib/data/products";
+import { CATEGORIES } from "@/lib/data/products";
+import { useInventoryStore } from "@/lib/store/inventory-store";
 import { useCartStore } from "@/lib/store/cart-store";
 
 const TAX_RATE = 0.05;
@@ -15,6 +16,9 @@ export default function PosPage() {
     const [activeCategory, setActiveCategory] = useState("All");
     const [search, setSearch] = useState("");
 
+    const products = useInventoryStore((s) => s.items);
+    const decrementStock = useInventoryStore((s) => s.decrementStock);
+
     const items = useCartStore((s) => s.items);
     const addItem = useCartStore((s) => s.addItem);
     const incrementItem = useCartStore((s) => s.incrementItem);
@@ -22,7 +26,7 @@ export default function PosPage() {
     const removeItem = useCartStore((s) => s.removeItem);
     const clearCart = useCartStore((s) => s.clearCart);
 
-    const filteredProducts = PRODUCTS.filter((p) => {
+    const filteredProducts = products.filter((p) => {
         const matchesCategory = activeCategory === "All" || p.category === activeCategory;
         const matchesSearch = p.name.toLowerCase().includes(search.toLowerCase());
         return matchesCategory && matchesSearch;
@@ -32,8 +36,14 @@ export default function PosPage() {
     const tax = subtotal * TAX_RATE;
     const total = subtotal + tax;
 
+    function handleAddToCart(product) {
+        if (product.stock === 0) return;
+        addItem(product);
+    }
+
     function handleCheckout() {
         if (items.length === 0) return;
+        items.forEach((item) => decrementStock(item.id, item.qty));
         // TODO: send order to backend once API is ready
         toast.success(`Order placed — Rs. ${total.toFixed(2)}`);
         clearCart();
@@ -74,12 +84,20 @@ export default function PosPage() {
                     {filteredProducts.map((product) => (
                         <Card
                             key={product.id}
-                            onClick={() => addItem(product)}
-                            className="cursor-pointer border-border/60 transition-colors hover:border-primary/60"
+                            onClick={() => handleAddToCart(product)}
+                            className={cn(
+                                "border-border/60 transition-colors",
+                                product.stock === 0
+                                    ? "cursor-not-allowed opacity-50"
+                                    : "cursor-pointer hover:border-primary/60"
+                            )}
                         >
                             <CardContent className="flex flex-col gap-1 p-4">
                                 <span className="text-sm font-medium text-foreground">{product.name}</span>
                                 <span className="text-sm text-primary">Rs. {product.price}</span>
+                                <span className="text-xs text-muted-foreground">
+                                    {product.stock === 0 ? "Out of stock" : `${product.stock} in stock`}
+                                </span>
                             </CardContent>
                         </Card>
                     ))}
