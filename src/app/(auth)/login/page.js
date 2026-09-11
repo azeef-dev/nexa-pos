@@ -40,7 +40,6 @@ export default function LoginPage() {
     } = useForm({ resolver: zodResolver(loginSchema) });
 
     function onSubmit(data) {
-        // TODO: connect to real auth API once backend is ready
         console.log(data);
         toast.success("Form is valid — backend not connected yet");
     }
