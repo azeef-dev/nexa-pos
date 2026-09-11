@@ -1,0 +1,115 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  PROVIDER
+}
+
+enum ProviderStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+// Login-capable accounts. Only Super Admin and Provider log in —
+// the "User" role from the spec (customer) is the Customer model below,
+// which has no login of its own.
+model Account {
+  id           String   @id @default(cuid())
+  role         Role
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  provider     Provider?
+}
+
+model Provider {
+  id           String         @id @default(cuid())
+  account      Account        @relation(fields: [accountId], references: [id])
+  accountId    String         @unique
+  businessName String
+  ownerName    String
+  status       ProviderStatus @default(ACTIVE)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  branches     Branch[]
+  inventory    InventoryItem[]
+  customers    Customer[]
+  sales        Sale[]
+}
+
+model Branch {
+  id         String   @id @default(cuid())
+  provider   Provider @relation(fields: [providerId], references: [id])
+  providerId String
+  name       String
+  address    String?
+  createdAt  DateTime @default(now())
+
+  sales      Sale[]
+  inventory  InventoryItem[]
+}
+
+model InventoryItem {
+  id         String     @id @default(cuid())
+  provider   Provider   @relation(fields: [providerId], references: [id])
+  providerId String
+  branch     Branch?    @relation(fields: [branchId], references: [id])
+  branchId   String?
+  name       String
+  category   String
+  price      Decimal
+  stock      Int        @default(0)
+  createdAt  DateTime   @default(now())
+  updatedAt  DateTime   @updatedAt
+
+  saleItems  SaleItem[]
+}
+
+model Customer {
+  id            String   @id @default(cuid())
+  provider      Provider @relation(fields: [providerId], references: [id])
+  providerId    String
+  name          String
+  phone         String
+  creditBalance Decimal  @default(0)
+  createdAt     DateTime @default(now())
+
+  sales         Sale[]
+}
+
+model Sale {
+  id         String     @id @default(cuid())
+  provider   Provider   @relation(fields: [providerId], references: [id])
+  providerId String
+  branch     Branch?    @relation(fields: [branchId], references: [id])
+  branchId   String?
+  customer   Customer?  @relation(fields: [customerId], references: [id])
+  customerId String?
+  subtotal   Decimal
+  tax        Decimal
+  total      Decimal
+  createdAt  DateTime   @default(now())
+
+  items      SaleItem[]
+}
+
+model SaleItem {
+  id              String        @id @default(cuid())
+  sale            Sale          @relation(fields: [saleId], references: [id])
+  saleId          String
+  inventoryItem   InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  inventoryItemId String
+  name            String
+  price           Decimal
+  qty             Int
+}
