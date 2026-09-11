@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -33,20 +34,34 @@ const features = [
 ];
 
 export default function LoginPage() {
+    const router = useRouter();
     const {
         register,
         handleSubmit,
         formState: { errors, isSubmitting },
     } = useForm({ resolver: zodResolver(loginSchema) });
 
-    function onSubmit(data) {
-        console.log(data);
-        toast.success("Form is valid — backend not connected yet");
+    async function onSubmit(data) {
+        const res = await fetch("/api/auth/login", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+        });
+        const result = await res.json();
+
+        if (!res.ok) {
+            toast.error(result.error || "Login failed");
+            return;
+        }
+
+        toast.success("Welcome back!");
+        router.push(result.redirectTo);
+        router.refresh();
     }
 
     return (
         <div className="flex min-h-screen">
-            <div className="relative hidden w-1/2 flex-col justify-center overflow-hidden bg-linear-to-br from-background via-background to-secondary px-16 lg:flex">
+            <div className="relative hidden w-1/2 flex-col justify-center overflow-hidden bg-gradient-to-br from-background via-background to-secondary px-16 lg:flex">
                 <div className="mb-8 flex items-center gap-2">
                     <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-sm font-bold text-primary-foreground">
                         N
