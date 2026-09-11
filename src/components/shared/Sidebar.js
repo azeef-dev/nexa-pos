@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, Users, Package, Receipt, Building2 } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, Users, Package, Receipt, Building2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const superAdminLinks = [
@@ -12,6 +12,7 @@ const superAdminLinks = [
 
 const providerLinks = [
     { href: "/provider", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/provider/pos", label: "POS", icon: ShoppingCart },
     { href: "/provider/inventory", label: "Inventory", icon: Package },
     { href: "/provider/users", label: "Customers", icon: Users },
     { href: "/provider/sales", label: "Sales", icon: Receipt },
