@@ -9,6 +9,7 @@ import { cn } from "@/lib/utils";
 import { CATEGORIES } from "@/lib/data/products";
 import { useInventoryStore } from "@/lib/store/inventory-store";
 import { useCartStore } from "@/lib/store/cart-store";
+import { useSalesStore } from "@/lib/store/sales-store";
 
 const TAX_RATE = 0.05;
 
@@ -25,6 +26,8 @@ export default function PosPage() {
     const decrementItem = useCartStore((s) => s.decrementItem);
     const removeItem = useCartStore((s) => s.removeItem);
     const clearCart = useCartStore((s) => s.clearCart);
+
+    const addSale = useSalesStore((s) => s.addSale);
 
     const filteredProducts = products.filter((p) => {
         const matchesCategory = activeCategory === "All" || p.category === activeCategory;
@@ -44,7 +47,7 @@ export default function PosPage() {
     function handleCheckout() {
         if (items.length === 0) return;
         items.forEach((item) => decrementStock(item.id, item.qty));
-        // TODO: send order to backend once API is ready
+        addSale({ items, subtotal, tax, total });
         toast.success(`Order placed — Rs. ${total.toFixed(2)}`);
         clearCart();
     }
@@ -87,9 +90,7 @@ export default function PosPage() {
                             onClick={() => handleAddToCart(product)}
                             className={cn(
                                 "border-border/60 transition-colors",
-                                product.stock === 0
-                                    ? "cursor-not-allowed opacity-50"
-                                    : "cursor-pointer hover:border-primary/60"
+                                product.stock === 0 ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:border-primary/60"
                             )}
                         >
                             <CardContent className="flex flex-col gap-1 p-4">
@@ -102,9 +103,7 @@ export default function PosPage() {
                         </Card>
                     ))}
                     {filteredProducts.length === 0 && (
-                        <p className="col-span-full py-10 text-center text-sm text-muted-foreground">
-                            No products found.
-                        </p>
+                        <p className="col-span-full py-10 text-center text-sm text-muted-foreground">No products found.</p>
                     )}
                 </div>
             </div>
@@ -114,19 +113,14 @@ export default function PosPage() {
                     <div className="mb-3 flex items-center justify-between">
                         <h2 className="font-semibold text-foreground">Cart</h2>
                         {items.length > 0 && (
-                            <button
-                                onClick={clearCart}
-                                className="text-xs text-muted-foreground hover:text-destructive"
-                            >
+                            <button onClick={clearCart} className="text-xs text-muted-foreground hover:text-destructive">
                                 Clear All
                             </button>
                         )}
                     </div>
 
                     <div className="flex-1 space-y-3 overflow-y-auto">
-                        {items.length === 0 && (
-                            <p className="pt-8 text-center text-sm text-muted-foreground">Cart is empty.</p>
-                        )}
+                        {items.length === 0 && <p className="pt-8 text-center text-sm text-muted-foreground">Cart is empty.</p>}
                         {items.map((item) => (
                             <div key={item.id} className="flex items-center justify-between gap-2">
                                 <div className="min-w-0 flex-1">
@@ -134,23 +128,14 @@ export default function PosPage() {
                                     <p className="text-xs text-muted-foreground">Rs. {item.price}</p>
                                 </div>
                                 <div className="flex items-center gap-1">
-                                    <button
-                                        onClick={() => decrementItem(item.id)}
-                                        className="flex h-6 w-6 items-center justify-center rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/70"
-                                    >
+                                    <button onClick={() => decrementItem(item.id)} className="flex h-6 w-6 items-center justify-center rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/70">
                                         <Minus className="h-3 w-3" />
                                     </button>
                                     <span className="w-5 text-center text-sm text-foreground">{item.qty}</span>
-                                    <button
-                                        onClick={() => incrementItem(item.id)}
-                                        className="flex h-6 w-6 items-center justify-center rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/70"
-                                    >
+                                    <button onClick={() => incrementItem(item.id)} className="flex h-6 w-6 items-center justify-center rounded-md bg-secondary text-secondary-foreground hover:bg-secondary/70">
                                         <Plus className="h-3 w-3" />
                                     </button>
-                                    <button
-                                        onClick={() => removeItem(item.id)}
-                                        className="ml-1 flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:text-destructive"
-                                    >
+                                    <button onClick={() => removeItem(item.id)} className="ml-1 flex h-6 w-6 items-center justify-center rounded-md text-muted-foreground hover:text-destructive">
                                         <Trash2 className="h-3 w-3" />
                                     </button>
                                 </div>
