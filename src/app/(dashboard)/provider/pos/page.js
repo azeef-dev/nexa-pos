@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { CATEGORIES } from "@/lib/data/products";
 import { useCartStore } from "@/lib/store/cart-store";
+import { queueOfflineSale } from "@/lib/offline-db";
 
 const TAX_RATE = 0.05;
 
@@ -26,8 +27,12 @@ export default function PosPage() {
 
     async function loadProducts() {
         setLoading(true);
-        const res = await fetch("/api/inventory");
-        if (res.ok) setProducts(await res.json());
+        try {
+            const res = await fetch("/api/inventory");
+            if (res.ok) setProducts(await res.json());
+        } catch {
+            // offline aur pehle se koi cached data nahi — khali list dikhegi
+        }
         setLoading(false);
     }
 
@@ -53,21 +58,34 @@ export default function PosPage() {
     async function handleCheckout() {
         if (items.length === 0) return;
 
-        const res = await fetch("/api/sales", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ items, subtotal, tax, total }),
-        });
+        try {
+            const res = await fetch("/api/sales", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ items, subtotal, tax, total }),
+            });
 
-        if (!res.ok) {
-            const result = await res.json();
-            toast.error(result.error || "Checkout failed");
-            return;
+            if (!res.ok) {
+                const result = await res.json();
+                toast.error(result.error || "Checkout failed");
+                return;
+            }
+
+            toast.success(`Order placed — Rs. ${total.toFixed(2)}`);
+            clearCart();
+            loadProducts();
+        } catch {
+            // Network unreachable — offline queue mein daal do
+            await queueOfflineSale({ items, subtotal, tax, total });
+            setProducts((prev) =>
+                prev.map((p) => {
+                    const cartItem = items.find((i) => i.id === p.id);
+                    return cartItem ? { ...p, stock: Math.max(0, p.stock - cartItem.qty) } : p;
+                })
+            );
+            toast.success("You're offline — sale saved locally, will sync automatically");
+            clearCart();
         }
-
-        toast.success(`Order placed — Rs. ${total.toFixed(2)}`);
-        clearCart();
-        loadProducts();
     }
 
     return (
