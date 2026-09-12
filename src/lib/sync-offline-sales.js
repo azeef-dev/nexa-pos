@@ -14,6 +14,8 @@ export async function syncOfflineSales() {
                     subtotal: sale.subtotal,
                     tax: sale.tax,
                     total: sale.total,
+                    customerId: sale.customerId || null,
+                    isCredit: !!sale.isCredit,
                 }),
             });
 
@@ -22,7 +24,7 @@ export async function syncOfflineSales() {
                 synced++;
             }
         } catch {
-            break; 
+            break;
         }
     }
 
