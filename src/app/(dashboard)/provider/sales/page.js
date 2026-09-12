@@ -1,7 +1,7 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { useSalesStore } from "@/lib/store/sales-store";
 
 function formatTime(iso) {
     return new Date(iso).toLocaleString(undefined, {
@@ -13,7 +13,17 @@ function formatTime(iso) {
 }
 
 export default function SalesPage() {
-    const sales = useSalesStore((s) => s.sales);
+    const [sales, setSales] = useState([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        fetch("/api/sales")
+            .then((res) => (res.ok ? res.json() : []))
+            .then((data) => {
+                setSales(data);
+                setLoading(false);
+            });
+    }, []);
 
     return (
         <div>
@@ -41,13 +51,20 @@ export default function SalesPage() {
                                     <td className="px-4 py-3 text-foreground">Rs. {sale.subtotal.toFixed(2)}</td>
                                     <td className="px-4 py-3 text-muted-foreground">Rs. {sale.tax.toFixed(2)}</td>
                                     <td className="px-4 py-3 font-medium text-foreground">Rs. {sale.total.toFixed(2)}</td>
-                                    <td className="px-4 py-3 text-muted-foreground">{formatTime(sale.date)}</td>
+                                    <td className="px-4 py-3 text-muted-foreground">{formatTime(sale.createdAt)}</td>
                                 </tr>
                             ))}
-                            {sales.length === 0 && (
+                            {!loading && sales.length === 0 && (
                                 <tr>
                                     <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
                                         No sales recorded yet.
+                                    </td>
+                                </tr>
+                            )}
+                            {loading && (
+                                <tr>
+                                    <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                                        Loading...
                                     </td>
                                 </tr>
                             )}
