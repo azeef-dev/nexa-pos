@@ -28,3 +28,9 @@ export async function verifyToken(token) {
         return null;
     }
 }
+
+export async function getSession(request) {
+    const token = request.cookies.get("nexapos_token")?.value;
+    if (!token) return null;
+    return verifyToken(token);
+}
