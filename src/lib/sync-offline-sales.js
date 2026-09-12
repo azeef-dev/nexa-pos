@@ -22,7 +22,7 @@ export async function syncOfflineSales() {
                 synced++;
             }
         } catch {
-            break; // abhi bhi offline hai, agli baar try karenge
+            break; 
         }
     }
 
