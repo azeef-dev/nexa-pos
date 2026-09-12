@@ -5,6 +5,13 @@ import toast from "react-hot-toast";
 import { Search, Plus, Minus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { CATEGORIES } from "@/lib/data/products";
 import { useCartStore } from "@/lib/store/cart-store";
@@ -17,6 +24,9 @@ export default function PosPage() {
     const [search, setSearch] = useState("");
     const [products, setProducts] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [customers, setCustomers] = useState([]);
+    const [selectedCustomerId, setSelectedCustomerId] = useState("");
+    const [isCredit, setIsCredit] = useState(false);
 
     const items = useCartStore((s) => s.items);
     const addItem = useCartStore((s) => s.addItem);
@@ -31,13 +41,23 @@ export default function PosPage() {
             const res = await fetch("/api/inventory");
             if (res.ok) setProducts(await res.json());
         } catch {
-            // offline aur pehle se koi cached data nahi — khali list dikhegi
+            // offline
         }
         setLoading(false);
     }
 
+    async function loadCustomers() {
+        try {
+            const res = await fetch("/api/customers");
+            if (res.ok) setCustomers(await res.json());
+        } catch {
+            // offline
+        }
+    }
+
     useEffect(() => {
         loadProducts();
+        loadCustomers();
     }, []);
 
     const filteredProducts = products.filter((p) => {
@@ -55,14 +75,32 @@ export default function PosPage() {
         addItem(product);
     }
 
+    function resetPaymentFields() {
+        setIsCredit(false);
+        setSelectedCustomerId("");
+    }
+
     async function handleCheckout() {
         if (items.length === 0) return;
+        if (isCredit && !selectedCustomerId) {
+            toast.error("Select a customer for a credit sale");
+            return;
+        }
+
+        const payload = {
+            items,
+            subtotal,
+            tax,
+            total,
+            customerId: selectedCustomerId || null,
+            isCredit,
+        };
 
         try {
             const res = await fetch("/api/sales", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ items, subtotal, tax, total }),
+                body: JSON.stringify(payload),
             });
 
             if (!res.ok) {
@@ -73,10 +111,10 @@ export default function PosPage() {
 
             toast.success(`Order placed — Rs. ${total.toFixed(2)}`);
             clearCart();
+            resetPaymentFields();
             loadProducts();
         } catch {
-            // Network unreachable — offline queue mein daal do
-            await queueOfflineSale({ items, subtotal, tax, total });
+            await queueOfflineSale(payload);
             setProducts((prev) =>
                 prev.map((p) => {
                     const cartItem = items.find((i) => i.id === p.id);
@@ -85,6 +123,7 @@ export default function PosPage() {
             );
             toast.success("You're offline — sale saved locally, will sync automatically");
             clearCart();
+            resetPaymentFields();
         }
     }
 
@@ -181,6 +220,44 @@ export default function PosPage() {
                                 </div>
                             </div>
                         ))}
+                    </div>
+
+                    <div className="mt-4 space-y-3 border-t border-border pt-4">
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => setIsCredit(false)}
+                                className={cn(
+                                    "flex-1 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+                                    !isCredit ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/70"
+                                )}
+                            >
+                                Cash
+                            </button>
+                            <button
+                                onClick={() => setIsCredit(true)}
+                                className={cn(
+                                    "flex-1 rounded-lg px-3 py-1.5 text-xs font-medium transition-colors",
+                                    isCredit ? "bg-primary text-primary-foreground" : "bg-secondary text-secondary-foreground hover:bg-secondary/70"
+                                )}
+                            >
+                                Credit (Udhar)
+                            </button>
+                        </div>
+
+                        {isCredit && (
+                            <Select value={selectedCustomerId} onValueChange={setSelectedCustomerId}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select customer" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {customers.map((c) => (
+                                        <SelectItem key={c.id} value={c.id}>
+                                            {c.name} — {c.phone}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        )}
                     </div>
 
                     <div className="mt-4 space-y-1 border-t border-border pt-4 text-sm">
