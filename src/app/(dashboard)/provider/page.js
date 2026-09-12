@@ -1,9 +1,8 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { DollarSign, Users, Star } from "lucide-react";
-import { useSalesStore } from "@/lib/store/sales-store";
-import { useCustomersStore } from "@/lib/store/customers-store";
 
 function isToday(iso) {
     const d = new Date(iso);
@@ -12,10 +11,20 @@ function isToday(iso) {
 }
 
 export default function ProviderHomePage() {
-    const sales = useSalesStore((s) => s.sales);
-    const customers = useCustomersStore((s) => s.customers);
+    const [sales, setSales] = useState([]);
+    const [customerCount, setCustomerCount] = useState(0);
 
-    const todaysSales = sales.filter((s) => isToday(s.date)).reduce((sum, s) => sum + s.total, 0);
+    useEffect(() => {
+        fetch("/api/sales")
+            .then((res) => (res.ok ? res.json() : []))
+            .then(setSales);
+
+        fetch("/api/customers")
+            .then((res) => (res.ok ? res.json() : []))
+            .then((data) => setCustomerCount(data.length));
+    }, []);
+
+    const todaysSales = sales.filter((s) => isToday(s.createdAt)).reduce((sum, s) => sum + s.total, 0);
 
     const bestSellerMap = {};
     sales.forEach((sale) => {
@@ -27,7 +36,7 @@ export default function ProviderHomePage() {
 
     const stats = [
         { label: "Today's Sales", value: `Rs. ${todaysSales.toFixed(2)}`, icon: DollarSign },
-        { label: "Total Customers", value: String(customers.length), icon: Users },
+        { label: "Total Customers", value: String(customerCount), icon: Users },
         { label: "Best Seller", value: bestSeller, icon: Star },
     ];
 
