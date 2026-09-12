@@ -1,11 +1,13 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { Search, Bell, LogOut } from "lucide-react";
+import { Search, Bell, LogOut, WifiOff } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { useOnlineStatus } from "@/hooks/useOnlineStatus";
 
 export default function Navbar() {
     const router = useRouter();
+    const isOnline = useOnlineStatus();
 
     async function handleLogout() {
         await fetch("/api/auth/logout", { method: "POST" });
@@ -23,6 +25,12 @@ export default function Navbar() {
                     className="w-full bg-transparent outline-none placeholder:text-muted-foreground"
                 />
             </div>
+            {!isOnline && (
+                <span className="flex items-center gap-1.5 rounded-lg bg-destructive/15 px-3 py-1.5 text-xs font-medium text-destructive">
+                    <WifiOff className="h-3.5 w-3.5" />
+                    Offline
+                </span>
+            )}
             <button className="relative flex h-9 w-9 items-center justify-center rounded-lg text-muted-foreground hover:bg-secondary hover:text-foreground">
                 <Bell className="h-4 w-4" />
                 <span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-destructive" />
