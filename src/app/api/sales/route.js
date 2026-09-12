@@ -20,7 +20,7 @@ export async function GET(request) {
 
     const sales = await prisma.sale.findMany({
         where: { providerId: session.providerId },
-        include: { items: true },
+        include: { items: true, customer: { select: { name: true } } },
         orderBy: { createdAt: "desc" },
     });
 
@@ -33,10 +33,14 @@ export async function POST(request) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { items, subtotal, tax, total, customerId } = await request.json();
+    const { items, subtotal, tax, total, customerId, isCredit } = await request.json();
 
     if (!items || items.length === 0) {
         return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
+    }
+
+    if (isCredit && !customerId) {
+        return NextResponse.json({ error: "Select a customer for a credit sale" }, { status: 400 });
     }
 
     const sale = await prisma.$transaction(async (tx) => {
@@ -44,6 +48,7 @@ export async function POST(request) {
             data: {
                 providerId: session.providerId,
                 customerId: customerId || null,
+                isCredit: !!isCredit,
                 subtotal,
                 tax,
                 total,
@@ -63,6 +68,16 @@ export async function POST(request) {
             await tx.inventoryItem.update({
                 where: { id: item.id },
                 data: { stock: { decrement: item.qty } },
+            });
+        }
+
+        if (isCredit && customerId) {
+            await tx.customer.update({
+                where: { id: customerId },
+                data: { creditBalance: { increment: total } },
+            });
+            await tx.creditTransaction.create({
+                data: { customerId, type: "CHARGE", amount: total, note: `Sale #${newSale.id.slice(-6)}` },
             });
         }
 
