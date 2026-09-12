@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Fragment, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import toast from "react-hot-toast";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Wallet } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -17,10 +17,17 @@ const customerSchema = z.object({
     creditBalance: z.coerce.number().min(0, "Balance cannot be negative").optional(),
 });
 
+const paymentSchema = z.object({
+    amount: z.coerce.number().positive("Enter an amount greater than 0"),
+    note: z.string().trim().optional(),
+});
+
 export default function CustomersPage() {
     const [showForm, setShowForm] = useState(false);
     const [customers, setCustomers] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [openCustomerId, setOpenCustomerId] = useState(null);
+    const [transactions, setTransactions] = useState([]);
 
     const {
         register,
@@ -28,6 +35,13 @@ export default function CustomersPage() {
         reset,
         formState: { errors, isSubmitting },
     } = useForm({ resolver: zodResolver(customerSchema) });
+
+    const {
+        register: registerPayment,
+        handleSubmit: handlePaymentSubmit,
+        reset: resetPayment,
+        formState: { errors: paymentErrors, isSubmitting: isPaymentSubmitting },
+    } = useForm({ resolver: zodResolver(paymentSchema) });
 
     async function loadCustomers() {
         setLoading(true);
@@ -63,6 +77,37 @@ export default function CustomersPage() {
         const res = await fetch(`/api/customers/${id}`, { method: "DELETE" });
         if (res.ok) loadCustomers();
         else toast.error("Failed to remove customer");
+    }
+
+    async function toggleCreditTab(customerId) {
+        if (openCustomerId === customerId) {
+            setOpenCustomerId(null);
+            return;
+        }
+        setOpenCustomerId(customerId);
+        resetPayment();
+        const res = await fetch(`/api/customers/${customerId}/credit`);
+        if (res.ok) setTransactions(await res.json());
+    }
+
+    async function onPaymentSubmit(data) {
+        const res = await fetch(`/api/customers/${openCustomerId}/credit`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+        });
+        const result = await res.json();
+
+        if (!res.ok) {
+            toast.error(result.error || "Failed to record payment");
+            return;
+        }
+
+        toast.success("Payment recorded");
+        resetPayment();
+        loadCustomers();
+        const historyRes = await fetch(`/api/customers/${openCustomerId}/credit`);
+        if (historyRes.ok) setTransactions(await historyRes.json());
     }
 
     return (
@@ -117,27 +162,74 @@ export default function CustomersPage() {
                         </thead>
                         <tbody>
                             {customers.map((c) => (
-                                <tr key={c.id} className="border-b border-border last:border-0">
-                                    <td className="px-4 py-3 text-foreground">{c.name}</td>
-                                    <td className="px-4 py-3 text-muted-foreground">{c.phone}</td>
-                                    <td className="px-4 py-3 text-foreground">Rs. {c.creditBalance}</td>
-                                    <td className="px-4 py-3">
-                                        <span
-                                            className={
-                                                c.creditBalance > 0
-                                                    ? "rounded-md bg-destructive/15 px-2 py-1 text-xs text-destructive"
-                                                    : "rounded-md bg-primary/15 px-2 py-1 text-xs text-primary"
-                                            }
-                                        >
-                                            {c.creditBalance > 0 ? "Due" : "Clear"}
-                                        </span>
-                                    </td>
-                                    <td className="px-4 py-3 text-right">
-                                        <button onClick={() => removeCustomer(c.id)} className="text-muted-foreground hover:text-destructive">
-                                            <Trash2 className="h-4 w-4" />
-                                        </button>
-                                    </td>
-                                </tr>
+                                <Fragment key={c.id}>
+                                    <tr className="border-b border-border last:border-0">
+                                        <td className="px-4 py-3 text-foreground">{c.name}</td>
+                                        <td className="px-4 py-3 text-muted-foreground">{c.phone}</td>
+                                        <td className="px-4 py-3 text-foreground">Rs. {c.creditBalance}</td>
+                                        <td className="px-4 py-3">
+                                            <span
+                                                className={
+                                                    c.creditBalance > 0
+                                                        ? "rounded-md bg-destructive/15 px-2 py-1 text-xs text-destructive"
+                                                        : "rounded-md bg-primary/15 px-2 py-1 text-xs text-primary"
+                                                }
+                                            >
+                                                {c.creditBalance > 0 ? "Due" : "Clear"}
+                                            </span>
+                                        </td>
+                                        <td className="px-4 py-3">
+                                            <div className="flex items-center justify-end gap-2">
+                                                <button onClick={() => toggleCreditTab(c.id)} title="Credit Tab" className="text-muted-foreground hover:text-primary">
+                                                    <Wallet className="h-4 w-4" />
+                                                </button>
+                                                <button onClick={() => removeCustomer(c.id)} className="text-muted-foreground hover:text-destructive">
+                                                    <Trash2 className="h-4 w-4" />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                    {openCustomerId === c.id && (
+                                        <tr className="border-b border-border bg-secondary/20 last:border-0">
+                                            <td colSpan={5} className="px-4 py-4">
+                                                <div className="grid gap-4 sm:grid-cols-2">
+                                                    <div>
+                                                        <p className="mb-2 text-xs font-medium text-muted-foreground">Recent Transactions</p>
+                                                        <div className="max-h-40 space-y-2 overflow-y-auto">
+                                                            {transactions.length === 0 && (
+                                                                <p className="text-xs text-muted-foreground">No transactions yet.</p>
+                                                            )}
+                                                            {transactions.map((t) => (
+                                                                <div key={t.id} className="flex items-center justify-between text-xs">
+                                                                    <span className="text-muted-foreground">
+                                                                        {t.type === "CHARGE" ? "Charge" : "Payment"}
+                                                                        {t.note ? ` — ${t.note}` : ""}
+                                                                    </span>
+                                                                    <span className={t.type === "CHARGE" ? "text-destructive" : "text-primary"}>
+                                                                        {t.type === "CHARGE" ? "+" : "-"}Rs. {t.amount}
+                                                                    </span>
+                                                                </div>
+                                                            ))}
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <p className="mb-2 text-xs font-medium text-muted-foreground">Record Payment</p>
+                                                        <form onSubmit={handlePaymentSubmit(onPaymentSubmit)} className="flex flex-col gap-2">
+                                                            <Input type="number" step="0.01" placeholder="Amount (Rs.)" {...registerPayment("amount")} />
+                                                            {paymentErrors.amount && (
+                                                                <p className="text-xs text-destructive">{paymentErrors.amount.message}</p>
+                                                            )}
+                                                            <Input placeholder="Note (optional)" {...registerPayment("note")} />
+                                                            <Button type="submit" size="sm" disabled={isPaymentSubmitting}>
+                                                                {isPaymentSubmitting ? "Saving..." : "Save Payment"}
+                                                            </Button>
+                                                        </form>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    )}
+                                </Fragment>
                             ))}
                             {!loading && customers.length === 0 && (
                                 <tr>
