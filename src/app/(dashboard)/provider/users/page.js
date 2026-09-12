@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { useCustomersStore } from "@/lib/store/customers-store";
 
 const customerSchema = z.object({
     name: z.string().trim().min(1, "Customer name is required"),
@@ -20,9 +19,8 @@ const customerSchema = z.object({
 
 export default function CustomersPage() {
     const [showForm, setShowForm] = useState(false);
-    const customers = useCustomersStore((s) => s.customers);
-    const addCustomer = useCustomersStore((s) => s.addCustomer);
-    const removeCustomer = useCustomersStore((s) => s.removeCustomer);
+    const [customers, setCustomers] = useState([]);
+    const [loading, setLoading] = useState(true);
 
     const {
         register,
@@ -31,11 +29,40 @@ export default function CustomersPage() {
         formState: { errors, isSubmitting },
     } = useForm({ resolver: zodResolver(customerSchema) });
 
-    function onSubmit(data) {
-        addCustomer({ ...data, creditBalance: data.creditBalance || 0 });
+    async function loadCustomers() {
+        setLoading(true);
+        const res = await fetch("/api/customers");
+        if (res.ok) setCustomers(await res.json());
+        setLoading(false);
+    }
+
+    useEffect(() => {
+        loadCustomers();
+    }, []);
+
+    async function onSubmit(data) {
+        const res = await fetch("/api/customers", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ ...data, creditBalance: data.creditBalance || 0 }),
+        });
+        const result = await res.json();
+
+        if (!res.ok) {
+            toast.error(result.error || "Failed to add customer");
+            return;
+        }
+
         toast.success(`${data.name} added`);
         reset();
         setShowForm(false);
+        loadCustomers();
+    }
+
+    async function removeCustomer(id) {
+        const res = await fetch(`/api/customers/${id}`, { method: "DELETE" });
+        if (res.ok) loadCustomers();
+        else toast.error("Failed to remove customer");
     }
 
     return (
@@ -106,19 +133,23 @@ export default function CustomersPage() {
                                         </span>
                                     </td>
                                     <td className="px-4 py-3 text-right">
-                                        <button
-                                            onClick={() => removeCustomer(c.id)}
-                                            className="text-muted-foreground hover:text-destructive"
-                                        >
+                                        <button onClick={() => removeCustomer(c.id)} className="text-muted-foreground hover:text-destructive">
                                             <Trash2 className="h-4 w-4" />
                                         </button>
                                     </td>
                                 </tr>
                             ))}
-                            {customers.length === 0 && (
+                            {!loading && customers.length === 0 && (
                                 <tr>
                                     <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
                                         No customers added yet.
+                                    </td>
+                                </tr>
+                            )}
+                            {loading && (
+                                <tr>
+                                    <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
+                                        Loading...
                                     </td>
                                 </tr>
                             )}
