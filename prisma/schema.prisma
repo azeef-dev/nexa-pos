@@ -17,9 +17,11 @@ enum ProviderStatus {
   SUSPENDED
 }
 
-// Login-capable accounts. Only Super Admin and Provider log in —
-// the "User" role from the spec (customer) is the Customer model below,
-// which has no login of its own.
+enum CreditTransactionType {
+  CHARGE
+  PAYMENT
+}
+
 model Account {
   id           String   @id @default(cuid())
   role         Role
@@ -76,15 +78,26 @@ model InventoryItem {
 }
 
 model Customer {
-  id            String   @id @default(cuid())
-  provider      Provider @relation(fields: [providerId], references: [id])
-  providerId    String
-  name          String
-  phone         String
-  creditBalance Decimal  @default(0)
-  createdAt     DateTime @default(now())
+  id                 String              @id @default(cuid())
+  provider           Provider            @relation(fields: [providerId], references: [id])
+  providerId         String
+  name               String
+  phone              String
+  creditBalance      Decimal             @default(0)
+  createdAt          DateTime            @default(now())
 
-  sales         Sale[]
+  sales              Sale[]
+  creditTransactions CreditTransaction[]
+}
+
+model CreditTransaction {
+  id         String                @id @default(cuid())
+  customer   Customer              @relation(fields: [customerId], references: [id])
+  customerId String
+  type       CreditTransactionType
+  amount     Decimal
+  note       String?
+  createdAt  DateTime              @default(now())
 }
 
 model Sale {
@@ -95,6 +108,7 @@ model Sale {
   branchId   String?
   customer   Customer?  @relation(fields: [customerId], references: [id])
   customerId String?
+  isCredit   Boolean    @default(false)
   subtotal   Decimal
   tax        Decimal
   total      Decimal
