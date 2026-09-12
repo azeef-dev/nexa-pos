@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -10,20 +10,22 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { useProvidersStore } from "@/lib/store/providers-store";
 
 const providerSchema = z.object({
     businessName: z.string().trim().min(1, "Business name is required"),
     ownerName: z.string().trim().min(1, "Owner name is required"),
     email: z.string().trim().min(1, "Email is required").email("Enter a valid email"),
+    password: z
+        .string()
+        .trim()
+        .min(6, "Password must be at least 6 characters")
+        .regex(/^\S+$/, "Password cannot contain spaces"),
 });
 
 export default function ProvidersPage() {
     const [showForm, setShowForm] = useState(false);
-    const providers = useProvidersStore((s) => s.providers);
-    const addProvider = useProvidersStore((s) => s.addProvider);
-    const toggleStatus = useProvidersStore((s) => s.toggleStatus);
-    const removeProvider = useProvidersStore((s) => s.removeProvider);
+    const [providers, setProviders] = useState([]);
+    const [loading, setLoading] = useState(true);
 
     const {
         register,
@@ -32,11 +34,55 @@ export default function ProvidersPage() {
         formState: { errors, isSubmitting },
     } = useForm({ resolver: zodResolver(providerSchema) });
 
-    function onSubmit(data) {
-        addProvider(data);
+    async function loadProviders() {
+        setLoading(true);
+        const res = await fetch("/api/providers");
+        if (res.ok) {
+            setProviders(await res.json());
+        }
+        setLoading(false);
+    }
+
+    useEffect(() => {
+        loadProviders();
+    }, []);
+
+    async function onSubmit(data) {
+        const res = await fetch("/api/providers", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+        });
+        const result = await res.json();
+
+        if (!res.ok) {
+            toast.error(result.error || "Failed to add provider");
+            return;
+        }
+
         toast.success(`${data.businessName} added`);
         reset();
         setShowForm(false);
+        loadProviders();
+    }
+
+    async function toggleStatus(id) {
+        const res = await fetch(`/api/providers/${id}`, { method: "PATCH" });
+        if (res.ok) {
+            loadProviders();
+        } else {
+            toast.error("Failed to update status");
+        }
+    }
+
+    async function removeProvider(id) {
+        const res = await fetch(`/api/providers/${id}`, { method: "DELETE" });
+        if (res.ok) {
+            toast.success("Provider removed");
+            loadProviders();
+        } else {
+            toast.error("Failed to remove provider");
+        }
     }
 
     return (
@@ -52,7 +98,7 @@ export default function ProvidersPage() {
             {showForm && (
                 <Card className="mb-6 border-border/60">
                     <CardContent className="p-6">
-                        <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 sm:grid-cols-3">
+                        <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 sm:grid-cols-4">
                             <div className="flex flex-col gap-1.5">
                                 <Label htmlFor="businessName">Business Name</Label>
                                 <Input id="businessName" placeholder="e.g. Ali Traders" {...register("businessName")} />
@@ -68,7 +114,12 @@ export default function ProvidersPage() {
                                 <Input id="email" type="email" placeholder="owner@business.com" {...register("email")} />
                                 {errors.email && <p className="text-xs text-destructive">{errors.email.message}</p>}
                             </div>
-                            <div className="sm:col-span-3">
+                            <div className="flex flex-col gap-1.5">
+                                <Label htmlFor="password">Temporary Password</Label>
+                                <Input id="password" type="password" placeholder="Set a login password" {...register("password")} />
+                                {errors.password && <p className="text-xs text-destructive">{errors.password.message}</p>}
+                            </div>
+                            <div className="sm:col-span-4">
                                 <Button type="submit" disabled={isSubmitting}>
                                     {isSubmitting ? "Adding..." : "Save Provider"}
                                 </Button>
@@ -102,22 +153,22 @@ export default function ProvidersPage() {
                                     <td className="px-4 py-3">
                                         <span
                                             className={
-                                                p.status === "Active"
+                                                p.status === "ACTIVE"
                                                     ? "rounded-md bg-primary/15 px-2 py-1 text-xs text-primary"
                                                     : "rounded-md bg-destructive/15 px-2 py-1 text-xs text-destructive"
                                             }
                                         >
-                                            {p.status}
+                                            {p.status === "ACTIVE" ? "Active" : "Suspended"}
                                         </span>
                                     </td>
                                     <td className="px-4 py-3">
                                         <div className="flex items-center justify-end gap-2">
                                             <button
                                                 onClick={() => toggleStatus(p.id)}
-                                                title={p.status === "Active" ? "Suspend" : "Activate"}
+                                                title={p.status === "ACTIVE" ? "Suspend" : "Activate"}
                                                 className="text-muted-foreground hover:text-foreground"
                                             >
-                                                {p.status === "Active" ? <Ban className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
+                                                {p.status === "ACTIVE" ? <Ban className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
                                             </button>
                                             <button onClick={() => removeProvider(p.id)} className="text-muted-foreground hover:text-destructive">
                                                 <Trash2 className="h-4 w-4" />
@@ -126,10 +177,17 @@ export default function ProvidersPage() {
                                     </td>
                                 </tr>
                             ))}
-                            {providers.length === 0 && (
+                            {!loading && providers.length === 0 && (
                                 <tr>
                                     <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
                                         No providers added yet.
+                                    </td>
+                                </tr>
+                            )}
+                            {loading && (
+                                <tr>
+                                    <td colSpan={5} className="px-4 py-8 text-center text-muted-foreground">
+                                        Loading...
                                     </td>
                                 </tr>
                             )}
