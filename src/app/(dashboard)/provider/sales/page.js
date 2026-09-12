@@ -35,8 +35,8 @@ export default function SalesPage() {
                             <tr className="border-b border-border text-left text-muted-foreground">
                                 <th className="px-4 py-3 font-medium">Order</th>
                                 <th className="px-4 py-3 font-medium">Items</th>
-                                <th className="px-4 py-3 font-medium">Subtotal</th>
-                                <th className="px-4 py-3 font-medium">Tax</th>
+                                <th className="px-4 py-3 font-medium">Customer</th>
+                                <th className="px-4 py-3 font-medium">Type</th>
                                 <th className="px-4 py-3 font-medium">Total</th>
                                 <th className="px-4 py-3 font-medium">Time</th>
                             </tr>
@@ -48,8 +48,18 @@ export default function SalesPage() {
                                     <td className="px-4 py-3 text-muted-foreground">
                                         {sale.items.map((i) => `${i.name} x${i.qty}`).join(", ")}
                                     </td>
-                                    <td className="px-4 py-3 text-foreground">Rs. {sale.subtotal.toFixed(2)}</td>
-                                    <td className="px-4 py-3 text-muted-foreground">Rs. {sale.tax.toFixed(2)}</td>
+                                    <td className="px-4 py-3 text-muted-foreground">{sale.customer?.name || "—"}</td>
+                                    <td className="px-4 py-3">
+                                        <span
+                                            className={
+                                                sale.isCredit
+                                                    ? "rounded-md bg-destructive/15 px-2 py-1 text-xs text-destructive"
+                                                    : "rounded-md bg-primary/15 px-2 py-1 text-xs text-primary"
+                                            }
+                                        >
+                                            {sale.isCredit ? "Credit" : "Cash"}
+                                        </span>
+                                    </td>
                                     <td className="px-4 py-3 font-medium text-foreground">Rs. {sale.total.toFixed(2)}</td>
                                     <td className="px-4 py-3 text-muted-foreground">{formatTime(sale.createdAt)}</td>
                                 </tr>
