@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
@@ -18,7 +18,6 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { CATEGORIES } from "@/lib/data/products";
-import { useInventoryStore } from "@/lib/store/inventory-store";
 
 const itemSchema = z.object({
     name: z.string().trim().min(1, "Item name is required"),
@@ -29,9 +28,8 @@ const itemSchema = z.object({
 
 export default function InventoryPage() {
     const [showForm, setShowForm] = useState(false);
-    const items = useInventoryStore((s) => s.items);
-    const addItem = useInventoryStore((s) => s.addItem);
-    const removeItem = useInventoryStore((s) => s.removeItem);
+    const [items, setItems] = useState([]);
+    const [loading, setLoading] = useState(true);
 
     const {
         register,
@@ -44,11 +42,40 @@ export default function InventoryPage() {
         defaultValues: { category: CATEGORIES[1] },
     });
 
-    function onSubmit(data) {
-        addItem(data);
+    async function loadItems() {
+        setLoading(true);
+        const res = await fetch("/api/inventory");
+        if (res.ok) setItems(await res.json());
+        setLoading(false);
+    }
+
+    useEffect(() => {
+        loadItems();
+    }, []);
+
+    async function onSubmit(data) {
+        const res = await fetch("/api/inventory", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data),
+        });
+        const result = await res.json();
+
+        if (!res.ok) {
+            toast.error(result.error || "Failed to add item");
+            return;
+        }
+
         toast.success(`${data.name} added to inventory`);
         reset({ name: "", category: CATEGORIES[1], price: "", stock: "" });
         setShowForm(false);
+        loadItems();
+    }
+
+    async function removeItem(id) {
+        const res = await fetch(`/api/inventory/${id}`, { method: "DELETE" });
+        if (res.ok) loadItems();
+        else toast.error("Failed to remove item");
     }
 
     return (
@@ -151,10 +178,17 @@ export default function InventoryPage() {
                                     </td>
                                 </tr>
                             ))}
-                            {items.length === 0 && (
+                            {!loading && items.length === 0 && (
                                 <tr>
                                     <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
                                         No items added yet.
+                                    </td>
+                                </tr>
+                            )}
+                            {loading && (
+                                <tr>
+                                    <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                                        Loading...
                                     </td>
                                 </tr>
                             )}
