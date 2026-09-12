@@ -1,24 +1,21 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { Search, Plus, Minus, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { CATEGORIES } from "@/lib/data/products";
-import { useInventoryStore } from "@/lib/store/inventory-store";
 import { useCartStore } from "@/lib/store/cart-store";
-import { useSalesStore } from "@/lib/store/sales-store";
 
 const TAX_RATE = 0.05;
 
 export default function PosPage() {
     const [activeCategory, setActiveCategory] = useState("All");
     const [search, setSearch] = useState("");
-
-    const products = useInventoryStore((s) => s.items);
-    const decrementStock = useInventoryStore((s) => s.decrementStock);
+    const [products, setProducts] = useState([]);
+    const [loading, setLoading] = useState(true);
 
     const items = useCartStore((s) => s.items);
     const addItem = useCartStore((s) => s.addItem);
@@ -27,7 +24,16 @@ export default function PosPage() {
     const removeItem = useCartStore((s) => s.removeItem);
     const clearCart = useCartStore((s) => s.clearCart);
 
-    const addSale = useSalesStore((s) => s.addSale);
+    async function loadProducts() {
+        setLoading(true);
+        const res = await fetch("/api/inventory");
+        if (res.ok) setProducts(await res.json());
+        setLoading(false);
+    }
+
+    useEffect(() => {
+        loadProducts();
+    }, []);
 
     const filteredProducts = products.filter((p) => {
         const matchesCategory = activeCategory === "All" || p.category === activeCategory;
@@ -44,12 +50,24 @@ export default function PosPage() {
         addItem(product);
     }
 
-    function handleCheckout() {
+    async function handleCheckout() {
         if (items.length === 0) return;
-        items.forEach((item) => decrementStock(item.id, item.qty));
-        addSale({ items, subtotal, tax, total });
+
+        const res = await fetch("/api/sales", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ items, subtotal, tax, total }),
+        });
+
+        if (!res.ok) {
+            const result = await res.json();
+            toast.error(result.error || "Checkout failed");
+            return;
+        }
+
         toast.success(`Order placed — Rs. ${total.toFixed(2)}`);
         clearCart();
+        loadProducts();
     }
 
     return (
@@ -84,25 +102,29 @@ export default function PosPage() {
                 </div>
 
                 <div className="grid flex-1 auto-rows-min grid-cols-2 gap-3 overflow-y-auto pb-2 sm:grid-cols-3 xl:grid-cols-4">
-                    {filteredProducts.map((product) => (
-                        <Card
-                            key={product.id}
-                            onClick={() => handleAddToCart(product)}
-                            className={cn(
-                                "border-border/60 transition-colors",
-                                product.stock === 0 ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:border-primary/60"
-                            )}
-                        >
-                            <CardContent className="flex flex-col gap-1 p-4">
-                                <span className="text-sm font-medium text-foreground">{product.name}</span>
-                                <span className="text-sm text-primary">Rs. {product.price}</span>
-                                <span className="text-xs text-muted-foreground">
-                                    {product.stock === 0 ? "Out of stock" : `${product.stock} in stock`}
-                                </span>
-                            </CardContent>
-                        </Card>
-                    ))}
-                    {filteredProducts.length === 0 && (
+                    {loading && (
+                        <p className="col-span-full py-10 text-center text-sm text-muted-foreground">Loading products...</p>
+                    )}
+                    {!loading &&
+                        filteredProducts.map((product) => (
+                            <Card
+                                key={product.id}
+                                onClick={() => handleAddToCart(product)}
+                                className={cn(
+                                    "border-border/60 transition-colors",
+                                    product.stock === 0 ? "cursor-not-allowed opacity-50" : "cursor-pointer hover:border-primary/60"
+                                )}
+                            >
+                                <CardContent className="flex flex-col gap-1 p-4">
+                                    <span className="text-sm font-medium text-foreground">{product.name}</span>
+                                    <span className="text-sm text-primary">Rs. {product.price}</span>
+                                    <span className="text-xs text-muted-foreground">
+                                        {product.stock === 0 ? "Out of stock" : `${product.stock} in stock`}
+                                    </span>
+                                </CardContent>
+                            </Card>
+                        ))}
+                    {!loading && filteredProducts.length === 0 && (
                         <p className="col-span-full py-10 text-center text-sm text-muted-foreground">No products found.</p>
                     )}
                 </div>
