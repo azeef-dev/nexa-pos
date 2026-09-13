@@ -43,6 +43,19 @@ export async function POST(request) {
         return NextResponse.json({ error: "Select a customer for a credit sale" }, { status: 400 });
     }
 
+    const requestedIds = [...new Set(items.map((i) => i.id))];
+    const dbItems = await prisma.inventoryItem.findMany({
+        where: { id: { in: requestedIds }, providerId: session.providerId, isActive: true },
+    });
+    const dbItemsById = new Map(dbItems.map((i) => [i.id, i]));
+
+    if (dbItems.length !== requestedIds.length) {
+        return NextResponse.json(
+            { error: "One or more items in the cart are no longer available" },
+            { status: 404 }
+        );
+    }
+
     const sale = await prisma.$transaction(async (tx) => {
         const newSale = await tx.sale.create({
             data: {
