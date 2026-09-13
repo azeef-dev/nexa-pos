@@ -43,5 +43,14 @@ export async function DELETE(request, { params }) {
     ]);
     const hasHistory = saleCount > 0 || customerCount > 0 || inventoryCount > 0;
 
+    if (hasHistory) {
+        // Hard-deleting would violate FK constraints on sales/customers/
+        // inventory that still reference this provider — suspend instead,
+        // same "archive rather than lose history" pattern used for
+        // individual inventory items and customers.
+        await prisma.provider.update({ where: { id }, data: { status: "SUSPENDED" } });
+        return NextResponse.json({ success: true, archived: true });
+    }
+
     return NextResponse.json({ error: "Not implemented" }, { status: 501 });
 }
