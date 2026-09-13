@@ -71,12 +71,15 @@ export async function POST(request) {
                 tax,
                 total,
                 items: {
-                    create: items.map((item) => ({
-                        inventoryItemId: item.id,
-                        name: item.name,
-                        price: item.price,
-                        qty: item.qty,
-                    })),
+                    create: items.map((item) => {
+                        const dbItem = dbItemsById.get(item.id);
+                        return {
+                            inventoryItemId: dbItem.id,
+                            name: dbItem.name,
+                            price: dbItem.price,
+                            qty: item.qty,
+                        };
+                    }),
                 },
             },
             include: { items: true, customer: { select: { name: true } } },
