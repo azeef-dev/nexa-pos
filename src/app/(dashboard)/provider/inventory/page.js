@@ -74,8 +74,17 @@ export default function InventoryPage() {
 
     async function removeItem(id) {
         const res = await fetch(`/api/inventory/${id}`, { method: "DELETE" });
-        if (res.ok) loadItems();
-        else toast.error("Failed to remove item");
+        if (res.ok) {
+            const result = await res.json();
+            if (result.archived) {
+                toast.success("Item has sales history — archived instead of deleted");
+            } else {
+                toast.success("Item removed");
+            }
+            loadItems();
+        } else {
+            toast.error("Failed to remove item");
+        }
     }
 
     return (
