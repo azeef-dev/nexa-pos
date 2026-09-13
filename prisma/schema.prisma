@@ -85,6 +85,7 @@ model Customer {
   name               String
   phone              String
   creditBalance      Decimal             @default(0)
+  isActive           Boolean             @default(true)
   createdAt          DateTime            @default(now())
 
   sales              Sale[]
