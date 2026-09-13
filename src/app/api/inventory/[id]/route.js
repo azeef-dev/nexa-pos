@@ -15,6 +15,20 @@ export async function PATCH(request, { params }) {
         return NextResponse.json({ error: "Item not found" }, { status: 404 });
     }
 
+    const { name, category, price, stock } = await request.json();
+
+    if (!name || !category || price === undefined || stock === undefined) {
+        return NextResponse.json({ error: "All fields are required" }, { status: 400 });
+    }
+
+    if (Number(price) <= 0) {
+        return NextResponse.json({ error: "Price must be greater than 0" }, { status: 400 });
+    }
+
+    if (Number(stock) < 0) {
+        return NextResponse.json({ error: "Stock cannot be negative" }, { status: 400 });
+    }
+
     return NextResponse.json({ error: "Not implemented" }, { status: 501 });
 }
 
