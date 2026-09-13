@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { inventoryItemSchema } from "@/lib/schemas";
+import { validateBody } from "@/lib/validate-request";
 
 function serialize(item) {
     return { ...item, price: Number(item.price) };
@@ -26,11 +28,9 @@ export async function POST(request) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { name, category, price, stock } = await request.json();
-
-    if (!name || !category || price === undefined || stock === undefined) {
-        return NextResponse.json({ error: "All fields are required" }, { status: 400 });
-    }
+    const { data, error } = validateBody(inventoryItemSchema, await request.json());
+    if (error) return error;
+    const { name, category, price, stock } = data;
 
     const item = await prisma.inventoryItem.create({
         data: { providerId: session.providerId, name, category, price, stock },

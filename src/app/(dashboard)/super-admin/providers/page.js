@@ -3,24 +3,13 @@
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import toast from "react-hot-toast";
 import { Plus, Trash2, Ban, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-
-const providerSchema = z.object({
-    businessName: z.string().trim().min(1, "Business name is required"),
-    ownerName: z.string().trim().min(1, "Owner name is required"),
-    email: z.string().trim().min(1, "Email is required").email("Enter a valid email"),
-    password: z
-        .string()
-        .trim()
-        .min(6, "Password must be at least 6 characters")
-        .regex(/^\S+$/, "Password cannot contain spaces"),
-});
+import { providerSchema } from "@/lib/schemas";
 
 export default function ProvidersPage() {
     const [showForm, setShowForm] = useState(false);
