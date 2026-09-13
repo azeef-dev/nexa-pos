@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import toast from "react-hot-toast";
-import { Plus, Trash2, Wallet } from "lucide-react";
+import { Plus, Trash2, Wallet, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -28,6 +28,7 @@ export default function CustomersPage() {
     const [loading, setLoading] = useState(true);
     const [openCustomerId, setOpenCustomerId] = useState(null);
     const [transactions, setTransactions] = useState([]);
+    const [editingId, setEditingId] = useState(null);
 
     const {
         register,
@@ -55,22 +56,36 @@ export default function CustomersPage() {
     }, []);
 
     async function onSubmit(data) {
-        const res = await fetch("/api/customers", {
-            method: "POST",
+        const isEditing = Boolean(editingId);
+        const res = await fetch(isEditing ? `/api/customers/${editingId}` : "/api/customers", {
+            method: isEditing ? "PATCH" : "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ ...data, creditBalance: data.creditBalance || 0 }),
+            body: JSON.stringify(
+                isEditing ? { name: data.name, phone: data.phone } : { ...data, creditBalance: data.creditBalance || 0 }
+            ),
         });
         const result = await res.json();
 
         if (!res.ok) {
-            toast.error(result.error || "Failed to add customer");
+            toast.error(result.error || `Failed to ${isEditing ? "update" : "add"} customer`);
             return;
         }
 
-        toast.success(`${data.name} added`);
-        reset();
-        setShowForm(false);
+        toast.success(isEditing ? `${data.name} updated` : `${data.name} added`);
+        cancelForm();
         loadCustomers();
+    }
+
+    function startEdit(customer) {
+        setEditingId(customer.id);
+        reset({ name: customer.name, phone: customer.phone });
+        setShowForm(true);
+    }
+
+    function cancelForm() {
+        setEditingId(null);
+        setShowForm(false);
+        reset({ name: "", phone: "", creditBalance: "" });
     }
 
     async function removeCustomer(id) {
@@ -123,7 +138,7 @@ export default function CustomersPage() {
         <div>
             <div className="mb-6 flex items-center justify-between">
                 <h1 className="text-2xl font-semibold text-foreground">Customers</h1>
-                <Button onClick={() => setShowForm((s) => !s)}>
+                <Button onClick={() => (showForm ? cancelForm() : setShowForm(true))}>
                     <Plus className="h-4 w-4" />
                     {showForm ? "Cancel" : "Add Customer"}
                 </Button>
@@ -132,6 +147,9 @@ export default function CustomersPage() {
             {showForm && (
                 <Card className="mb-6 border-border/60">
                     <CardContent className="p-6">
+                        <p className="mb-4 text-sm font-medium text-foreground">
+                            {editingId ? "Edit Customer" : "New Customer"}
+                        </p>
                         <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 sm:grid-cols-3">
                             <div className="flex flex-col gap-1.5">
                                 <Label htmlFor="name">Customer Name</Label>
@@ -143,13 +161,15 @@ export default function CustomersPage() {
                                 <Input id="phone" placeholder="+92 3xx xxxxxxx" {...register("phone")} />
                                 {errors.phone && <p className="text-xs text-destructive">{errors.phone.message}</p>}
                             </div>
-                            <div className="flex flex-col gap-1.5">
-                                <Label htmlFor="creditBalance">Opening Credit Balance (Rs.)</Label>
-                                <Input id="creditBalance" type="number" placeholder="0" {...register("creditBalance")} />
-                            </div>
+                            {!editingId && (
+                                <div className="flex flex-col gap-1.5">
+                                    <Label htmlFor="creditBalance">Opening Credit Balance (Rs.)</Label>
+                                    <Input id="creditBalance" type="number" placeholder="0" {...register("creditBalance")} />
+                                </div>
+                            )}
                             <div className="sm:col-span-3">
                                 <Button type="submit" disabled={isSubmitting}>
-                                    {isSubmitting ? "Adding..." : "Save Customer"}
+                                    {isSubmitting ? "Saving..." : editingId ? "Update Customer" : "Save Customer"}
                                 </Button>
                             </div>
                         </form>
@@ -191,6 +211,9 @@ export default function CustomersPage() {
                                             <div className="flex items-center justify-end gap-2">
                                                 <button onClick={() => toggleCreditTab(c.id)} title="Credit Tab" className="text-muted-foreground hover:text-primary">
                                                     <Wallet className="h-4 w-4" />
+                                                </button>
+                                                <button onClick={() => startEdit(c)} title="Edit Customer" className="text-muted-foreground hover:text-foreground">
+                                                    <Pencil className="h-4 w-4" />
                                                 </button>
                                                 <button onClick={() => removeCustomer(c.id)} className="text-muted-foreground hover:text-destructive">
                                                     <Trash2 className="h-4 w-4" />
