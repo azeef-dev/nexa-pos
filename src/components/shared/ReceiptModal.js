@@ -1,9 +1,25 @@
 "use client";
 
+import { useEffect } from "react";
+import { createPortal } from "react-dom";
+import toast from "react-hot-toast";
 import { X, Printer } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function ReceiptModal({ sale, businessName, onClose }) {
+    useEffect(() => {
+        if (!sale) return;
+
+        document.getElementById("receipt-print-button")?.focus();
+
+        function handleAfterPrint() {
+            toast.success("Receipt printed successfully");
+        }
+
+        window.addEventListener("afterprint", handleAfterPrint);
+        return () => window.removeEventListener("afterprint", handleAfterPrint);
+    }, [sale]);
+
     if (!sale) return null;
 
     const customerName = sale.customer?.name;
@@ -12,18 +28,18 @@ export default function ReceiptModal({ sale, businessName, onClose }) {
         window.print();
     }
 
-    return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4">
-            <div className="flex max-h-[90vh] w-full max-w-sm flex-col rounded-2xl border border-border bg-card">
-                <div className="flex items-center justify-between border-b border-border px-5 py-4">
-                    <h2 className="font-semibold text-foreground">Receipt</h2>
-                    <button onClick={onClose} className="text-muted-foreground hover:text-foreground">
+    return createPortal(
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
+            <div className="w-full max-w-sm rounded-2xl bg-neutral-800 p-5 shadow-2xl">
+                <div className="mb-4 flex items-center justify-between">
+                    <h2 className="font-semibold text-white">Receipt</h2>
+                    <button onClick={onClose} className="text-neutral-400 hover:text-white">
                         <X className="h-4 w-4" />
                     </button>
                 </div>
 
-                <div className="flex-1 overflow-y-auto bg-secondary/20 p-6">
-                    <div className="receipt-print-area mx-auto w-full max-w-70 rounded-md bg-white p-4 font-mono text-[13px] text-black shadow-sm">
+                <div className="rounded-lg bg-neutral-900 p-4">
+                    <div className="receipt-print-area mx-auto w-full max-w-[280px] rounded-md bg-white p-4 font-mono text-[13px] text-black shadow-lg">
                         <p className="text-center text-base font-bold">{businessName}</p>
                         <p className="text-center text-[11px] text-gray-500">
                             {new Date(sale.createdAt).toLocaleString()}
@@ -72,16 +88,17 @@ export default function ReceiptModal({ sale, businessName, onClose }) {
                     </div>
                 </div>
 
-                <div className="flex gap-2 border-t border-border p-4">
+                <div className="mt-5 flex gap-2">
                     <Button variant="outline" className="flex-1" onClick={onClose}>
                         Close
                     </Button>
-                    <Button className="flex-1" onClick={handlePrint}>
+                    <Button id="receipt-print-button" className="flex-1" onClick={handlePrint}>
                         <Printer className="h-4 w-4" />
                         Print
                     </Button>
                 </div>
             </div>
-        </div>
+        </div>,
+        document.body
     );
 }
