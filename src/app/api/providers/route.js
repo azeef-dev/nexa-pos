@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession, hashPassword } from "@/lib/auth";
+import { providerSchema } from "@/lib/schemas";
+import { validateBody } from "@/lib/validate-request";
 
 export async function GET(request) {
     const session = await getSession(request);
@@ -30,11 +32,9 @@ export async function POST(request) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { businessName, ownerName, email, password } = await request.json();
-
-    if (!businessName || !ownerName || !email || !password) {
-        return NextResponse.json({ error: "All fields are required" }, { status: 400 });
-    }
+    const { data, error } = validateBody(providerSchema, await request.json());
+    if (error) return error;
+    const { businessName, ownerName, email, password } = data;
 
     const existing = await prisma.account.findUnique({ where: { email } });
     if (existing) {
