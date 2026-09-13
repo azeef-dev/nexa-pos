@@ -76,7 +76,14 @@ export default function CustomersPage() {
 
     function startEdit(customer) {
         setEditingId(customer.id);
+        reset({ name: customer.name, phone: customer.phone });
         setShowForm(true);
+    }
+
+    function cancelForm() {
+        setEditingId(null);
+        setShowForm(false);
+        reset({ name: "", phone: "", creditBalance: "" });
     }
 
     async function removeCustomer(id) {
@@ -129,7 +136,7 @@ export default function CustomersPage() {
         <div>
             <div className="mb-6 flex items-center justify-between">
                 <h1 className="text-2xl font-semibold text-foreground">Customers</h1>
-                <Button onClick={() => setShowForm((s) => !s)}>
+                <Button onClick={() => (showForm ? cancelForm() : setShowForm(true))}>
                     <Plus className="h-4 w-4" />
                     {showForm ? "Cancel" : "Add Customer"}
                 </Button>
