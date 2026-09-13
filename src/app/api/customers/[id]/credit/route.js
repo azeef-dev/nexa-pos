@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { creditPaymentSchema } from "@/lib/schemas";
+import { validateBody } from "@/lib/validate-request";
 
 export async function GET(request, { params }) {
     const session = await getSession(request);
@@ -30,11 +32,9 @@ export async function POST(request, { params }) {
     }
 
     const { id } = await params;
-    const { amount, note } = await request.json();
-
-    if (!amount || amount <= 0) {
-        return NextResponse.json({ error: "Enter a valid payment amount" }, { status: 400 });
-    }
+    const { data, error } = validateBody(creditPaymentSchema, await request.json());
+    if (error) return error;
+    const { amount, note } = data;
 
     const customer = await prisma.customer.findUnique({ where: { id } });
     if (!customer || customer.providerId !== session.providerId) {
