@@ -56,6 +56,11 @@ export async function POST(request) {
         );
     }
 
+    const invalidQty = items.some((i) => !Number.isInteger(i.qty) || i.qty <= 0);
+    if (invalidQty) {
+        return NextResponse.json({ error: "Item quantities must be positive whole numbers" }, { status: 400 });
+    }
+
     const sale = await prisma.$transaction(async (tx) => {
         const newSale = await tx.sale.create({
             data: {
