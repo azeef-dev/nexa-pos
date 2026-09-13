@@ -17,8 +17,7 @@ import { CATEGORIES } from "@/lib/data/products";
 import { useCartStore } from "@/lib/store/cart-store";
 import { queueOfflineSale } from "@/lib/offline-db";
 import ReceiptModal from "@/components/shared/ReceiptModal";
-
-const TAX_RATE = 0.05;
+import { TAX_RATE } from "@/lib/tax";
 
 export default function PosPage() {
     const [activeCategory, setActiveCategory] = useState("All");
