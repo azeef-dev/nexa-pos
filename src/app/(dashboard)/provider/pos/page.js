@@ -111,6 +111,10 @@ export default function PosPage() {
             if (!res.ok) {
                 const result = await res.json();
                 toast.error(result.error || "Checkout failed");
+                // The cart's stock numbers may be stale (another sale beat us
+                // to the last unit, an item was edited/removed, etc.) — refresh
+                // so the cashier sees what's actually available before retrying.
+                loadProducts();
                 return;
             }
 
