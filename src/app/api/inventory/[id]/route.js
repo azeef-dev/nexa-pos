@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { inventoryItemSchema } from "@/lib/schemas";
+import { validateBody } from "@/lib/validate-request";
 
 function serialize(item) {
     return { ...item, price: Number(item.price) };
@@ -19,19 +21,9 @@ export async function PATCH(request, { params }) {
         return NextResponse.json({ error: "Item not found" }, { status: 404 });
     }
 
-    const { name, category, price, stock } = await request.json();
-
-    if (!name || !category || price === undefined || stock === undefined) {
-        return NextResponse.json({ error: "All fields are required" }, { status: 400 });
-    }
-
-    if (Number(price) <= 0) {
-        return NextResponse.json({ error: "Price must be greater than 0" }, { status: 400 });
-    }
-
-    if (Number(stock) < 0) {
-        return NextResponse.json({ error: "Stock cannot be negative" }, { status: 400 });
-    }
+    const { data, error } = validateBody(inventoryItemSchema, await request.json());
+    if (error) return error;
+    const { name, category, price, stock } = data;
 
     const item = await prisma.inventoryItem.update({
         where: { id },
