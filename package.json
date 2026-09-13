@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "^0.125.0",
     "@base-ui/react": "^1.8.0",
     "@hookform/resolvers": "^5.9.1",
     "@hugeicons/core-free-icons": "^4.3.2",
@@ -46,6 +47,7 @@
   "allowScripts": {
     "unrs-resolver@1.12.2": true,
     "@prisma/engines@6.15.0": true,
-    "prisma@6.15.0": true
+    "prisma@6.15.0": true,
+    "@prisma/client@6.15.0": true
   }
 }
