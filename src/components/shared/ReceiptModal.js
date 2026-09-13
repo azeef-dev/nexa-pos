@@ -10,7 +10,7 @@ function ReceiptContent({ sale, businessName }) {
     const customerName = sale.customer?.name;
 
     return (
-        <div className="receipt-print-area mx-auto w-full max-w-[280px] rounded-md bg-white p-4 font-mono text-[13px] text-black shadow-lg">
+        <div className="receipt-print-area mx-auto w-full max-w-70 rounded-md bg-white p-4 font-mono text-[13px] text-black shadow-lg">
             <p className="text-center text-base font-bold">{businessName}</p>
             <p className="text-center text-[11px] text-gray-500">
                 {new Date(sale.createdAt).toLocaleString()}
