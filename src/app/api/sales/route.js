@@ -3,6 +3,13 @@ import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { TAX_RATE } from "@/lib/tax";
 
+class InsufficientStockError extends Error {
+    constructor(itemName) {
+        super(`Not enough stock for "${itemName}"`);
+        this.name = "InsufficientStockError";
+    }
+}
+
 function serialize(sale) {
     return {
         ...sale,
@@ -68,49 +75,65 @@ export async function POST(request) {
     const computedTax = computedSubtotal * TAX_RATE;
     const computedTotal = computedSubtotal + computedTax;
 
-    const sale = await prisma.$transaction(async (tx) => {
-        const newSale = await tx.sale.create({
-            data: {
-                providerId: session.providerId,
-                customerId: customerId || null,
-                isCredit: !!isCredit,
-                subtotal: computedSubtotal,
-                tax: computedTax,
-                total: computedTotal,
-                items: {
-                    create: items.map((item) => {
-                        const dbItem = dbItemsById.get(item.id);
-                        return {
-                            inventoryItemId: dbItem.id,
-                            name: dbItem.name,
-                            price: dbItem.price,
-                            qty: item.qty,
-                        };
-                    }),
+    let sale;
+    try {
+        sale = await prisma.$transaction(async (tx) => {
+            const newSale = await tx.sale.create({
+                data: {
+                    providerId: session.providerId,
+                    customerId: customerId || null,
+                    isCredit: !!isCredit,
+                    subtotal: computedSubtotal,
+                    tax: computedTax,
+                    total: computedTotal,
+                    items: {
+                        create: items.map((item) => {
+                            const dbItem = dbItemsById.get(item.id);
+                            return {
+                                inventoryItemId: dbItem.id,
+                                name: dbItem.name,
+                                price: dbItem.price,
+                                qty: item.qty,
+                            };
+                        }),
+                    },
                 },
-            },
-            include: { items: true, customer: { select: { name: true } } },
+                include: { items: true, customer: { select: { name: true } } },
+            });
+
+            for (const item of items) {
+                // Conditional decrement: only succeeds if enough stock is still
+                // there at write time, so two simultaneous sales can't both pass
+                // a "stock >= qty" check and drive stock negative between them.
+                const { count } = await tx.inventoryItem.updateMany({
+                    where: { id: item.id, stock: { gte: item.qty } },
+                    data: { stock: { decrement: item.qty } },
+                });
+
+                if (count === 0) {
+                    const dbItem = dbItemsById.get(item.id);
+                    throw new InsufficientStockError(dbItem.name);
+                }
+            }
+
+            if (isCredit && customerId) {
+                await tx.customer.update({
+                    where: { id: customerId },
+                    data: { creditBalance: { increment: computedTotal } },
+                });
+                await tx.creditTransaction.create({
+                    data: { customerId, type: "CHARGE", amount: computedTotal, note: `Sale #${newSale.id.slice(-6)}` },
+                });
+            }
+
+            return newSale;
         });
-
-        for (const item of items) {
-            await tx.inventoryItem.update({
-                where: { id: item.id },
-                data: { stock: { decrement: item.qty } },
-            });
+    } catch (err) {
+        if (err instanceof InsufficientStockError) {
+            return NextResponse.json({ error: err.message }, { status: 409 });
         }
-
-        if (isCredit && customerId) {
-            await tx.customer.update({
-                where: { id: customerId },
-                data: { creditBalance: { increment: computedTotal } },
-            });
-            await tx.creditTransaction.create({
-                data: { customerId, type: "CHARGE", amount: computedTotal, note: `Sale #${newSale.id.slice(-6)}` },
-            });
-        }
-
-        return newSale;
-    });
+        throw err;
+    }
 
     return NextResponse.json(serialize(sale));
 }
