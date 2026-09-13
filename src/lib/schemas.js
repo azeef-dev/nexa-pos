@@ -28,7 +28,10 @@ export const creditPaymentSchema = z.object({
 
 const saleItemSchema = z.object({
     id: z.string().min(1),
-    qty: z.coerce.number().int().positive("Item quantities must be positive whole numbers"),
+    qty: z.coerce
+        .number()
+        .int("Item quantities must be positive whole numbers")
+        .positive("Item quantities must be positive whole numbers"),
 });
 
 export const saleSchema = z
