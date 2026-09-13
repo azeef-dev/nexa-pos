@@ -75,7 +75,14 @@ export default function InventoryPage() {
 
     function startEdit(item) {
         setEditingId(item.id);
+        reset({ name: item.name, category: item.category, price: item.price, stock: item.stock });
         setShowForm(true);
+    }
+
+    function cancelForm() {
+        setEditingId(null);
+        setShowForm(false);
+        reset({ name: "", category: CATEGORIES[1], price: "", stock: "" });
     }
 
     async function removeItem(id) {
@@ -97,7 +104,7 @@ export default function InventoryPage() {
         <div>
             <div className="mb-6 flex items-center justify-between">
                 <h1 className="text-2xl font-semibold text-foreground">Inventory</h1>
-                <Button onClick={() => setShowForm((s) => !s)}>
+                <Button onClick={() => (showForm ? cancelForm() : setShowForm(true))}>
                     <Plus className="h-4 w-4" />
                     {showForm ? "Cancel" : "Add Item"}
                 </Button>
