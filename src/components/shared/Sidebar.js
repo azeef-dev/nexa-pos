@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, ShoppingCart, Users, Package, Receipt, Building2 } from "lucide-react";
+import { LayoutDashboard, ShoppingCart, Users, Package, Receipt, Building2, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const superAdminLinks = [
     { href: "/super-admin", label: "Dashboard", icon: LayoutDashboard },
     { href: "/super-admin/providers", label: "Providers", icon: Building2 },
+    { href: "/super-admin/settings", label: "Settings", icon: Settings },
 ];
 
 const providerLinks = [
@@ -16,6 +17,7 @@ const providerLinks = [
     { href: "/provider/inventory", label: "Inventory", icon: Package },
     { href: "/provider/users", label: "Customers", icon: Users },
     { href: "/provider/sales", label: "Sales", icon: Receipt },
+    { href: "/provider/settings", label: "Settings", icon: Settings },
 ];
 
 export default function Sidebar() {
