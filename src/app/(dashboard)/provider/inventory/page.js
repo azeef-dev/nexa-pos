@@ -5,7 +5,7 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import toast from "react-hot-toast";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -30,6 +30,7 @@ export default function InventoryPage() {
     const [showForm, setShowForm] = useState(false);
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [editingId, setEditingId] = useState(null);
 
     const {
         register,
@@ -70,6 +71,11 @@ export default function InventoryPage() {
         reset({ name: "", category: CATEGORIES[1], price: "", stock: "" });
         setShowForm(false);
         loadItems();
+    }
+
+    function startEdit(item) {
+        setEditingId(item.id);
+        setShowForm(true);
     }
 
     async function removeItem(id) {
@@ -181,6 +187,9 @@ export default function InventoryPage() {
                                         </span>
                                     </td>
                                     <td className="px-4 py-3 text-right">
+                                        <button onClick={() => startEdit(item)} className="mr-3 text-muted-foreground hover:text-foreground">
+                                            <Pencil className="h-4 w-4" />
+                                        </button>
                                         <button onClick={() => removeItem(item.id)} className="text-muted-foreground hover:text-destructive">
                                             <Trash2 className="h-4 w-4" />
                                         </button>
