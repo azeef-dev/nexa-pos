@@ -20,7 +20,6 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
     const { request } = event;
 
-    // API calls apne offline-queue logic se handle hote hain, SW inhe touch nahi karega
     if (request.url.includes("/api/")) return;
 
     if (request.mode === "navigate") {
