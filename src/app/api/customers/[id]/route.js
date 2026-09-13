@@ -15,6 +15,16 @@ export async function DELETE(request, { params }) {
         return NextResponse.json({ error: "Customer not found" }, { status: 404 });
     }
 
+    const [saleCount, creditCount] = await Promise.all([
+        prisma.sale.count({ where: { customerId: id } }),
+        prisma.creditTransaction.count({ where: { customerId: id } }),
+    ]);
+
+    if (saleCount > 0 || creditCount > 0) {
+        await prisma.customer.update({ where: { id }, data: { isActive: false } });
+        return NextResponse.json({ success: true, archived: true });
+    }
+
     await prisma.customer.delete({ where: { id } });
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, archived: false });
 }
