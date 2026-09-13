@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { customerUpdateSchema } from "@/lib/schemas";
+import { validateBody } from "@/lib/validate-request";
 
 function serialize(customer) {
     return { ...customer, creditBalance: Number(customer.creditBalance) };
@@ -19,11 +21,9 @@ export async function PATCH(request, { params }) {
         return NextResponse.json({ error: "Customer not found" }, { status: 404 });
     }
 
-    const { name, phone } = await request.json();
-
-    if (!name || !phone) {
-        return NextResponse.json({ error: "Name and phone are required" }, { status: 400 });
-    }
+    const { data, error } = validateBody(customerUpdateSchema, await request.json());
+    if (error) return error;
+    const { name, phone } = data;
 
     // creditBalance is intentionally not editable here — it's only ever
     // changed via the /credit endpoint so the CreditTransaction ledger
