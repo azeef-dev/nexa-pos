@@ -26,6 +26,22 @@ export const creditPaymentSchema = z.object({
     note: z.string().trim().optional(),
 });
 
+const saleItemSchema = z.object({
+    id: z.string().min(1),
+    qty: z.coerce.number().int().positive("Item quantities must be positive whole numbers"),
+});
+
+export const saleSchema = z
+    .object({
+        items: z.array(saleItemSchema).min(1, "Cart is empty"),
+        customerId: z.string().min(1).nullable().optional(),
+        isCredit: z.boolean().optional(),
+    })
+    .refine((data) => !data.isCredit || data.customerId, {
+        message: "Select a customer for a credit sale",
+        path: ["customerId"],
+    });
+
 export const providerSchema = z.object({
     businessName: z.string().trim().min(1, "Business name is required"),
     ownerName: z.string().trim().min(1, "Owner name is required"),

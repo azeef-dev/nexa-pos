@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 import { TAX_RATE } from "@/lib/tax";
+import { saleSchema } from "@/lib/schemas";
+import { validateBody } from "@/lib/validate-request";
 
 class InsufficientStockError extends Error {
     constructor(itemName) {
@@ -41,15 +43,9 @@ export async function POST(request) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { items, customerId, isCredit } = await request.json();
-
-    if (!items || items.length === 0) {
-        return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
-    }
-
-    if (isCredit && !customerId) {
-        return NextResponse.json({ error: "Select a customer for a credit sale" }, { status: 400 });
-    }
+    const { data: body, error: bodyError } = validateBody(saleSchema, await request.json());
+    if (bodyError) return bodyError;
+    const { items, customerId, isCredit } = body;
 
     const requestedIds = [...new Set(items.map((i) => i.id))];
     const dbItems = await prisma.inventoryItem.findMany({
@@ -62,11 +58,6 @@ export async function POST(request) {
             { error: "One or more items in the cart are no longer available" },
             { status: 404 }
         );
-    }
-
-    const invalidQty = items.some((i) => !Number.isInteger(i.qty) || i.qty <= 0);
-    if (invalidQty) {
-        return NextResponse.json({ error: "Item quantities must be positive whole numbers" }, { status: 400 });
     }
 
     // Recomputed from the DB, not trusted from the client — a tampered
