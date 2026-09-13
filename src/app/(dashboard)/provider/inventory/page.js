@@ -113,6 +113,9 @@ export default function InventoryPage() {
             {showForm && (
                 <Card className="mb-6 border-border/60">
                     <CardContent className="p-6">
+                        <p className="mb-4 text-sm font-medium text-foreground">
+                            {editingId ? "Edit Item" : "New Item"}
+                        </p>
                         <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 sm:grid-cols-4">
                             <div className="flex flex-col gap-1.5">
                                 <Label htmlFor="name">Item Name</Label>
@@ -152,7 +155,7 @@ export default function InventoryPage() {
                             </div>
                             <div className="sm:col-span-4">
                                 <Button type="submit" disabled={isSubmitting}>
-                                    {isSubmitting ? "Adding..." : "Save Item"}
+                                    {isSubmitting ? "Saving..." : editingId ? "Update Item" : "Save Item"}
                                 </Button>
                             </div>
                         </form>
