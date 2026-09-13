@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 
+function serialize(item) {
+    return { ...item, price: Number(item.price) };
+}
+
 export async function PATCH(request, { params }) {
     const session = await getSession(request);
     if (!session || session.role !== "PROVIDER") {
@@ -29,7 +33,12 @@ export async function PATCH(request, { params }) {
         return NextResponse.json({ error: "Stock cannot be negative" }, { status: 400 });
     }
 
-    return NextResponse.json({ error: "Not implemented" }, { status: 501 });
+    const item = await prisma.inventoryItem.update({
+        where: { id },
+        data: { name, category, price, stock },
+    });
+
+    return NextResponse.json(serialize(item));
 }
 
 export async function DELETE(request, { params }) {
