@@ -52,5 +52,13 @@ export async function DELETE(request, { params }) {
         return NextResponse.json({ success: true, archived: true });
     }
 
-    return NextResponse.json({ error: "Not implemented" }, { status: 501 });
+    // No sales/customers/inventory reference this provider, so none of its
+    // branches can be referenced either — safe to clear those and hard-delete.
+    await prisma.$transaction([
+        prisma.branch.deleteMany({ where: { providerId: id } }),
+        prisma.provider.delete({ where: { id } }),
+        prisma.account.delete({ where: { id: provider.accountId } }),
+    ]);
+
+    return NextResponse.json({ success: true, archived: false });
 }
