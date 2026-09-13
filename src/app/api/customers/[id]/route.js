@@ -2,6 +2,10 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
 
+function serialize(customer) {
+    return { ...customer, creditBalance: Number(customer.creditBalance) };
+}
+
 export async function PATCH(request, { params }) {
     const session = await getSession(request);
     if (!session || session.role !== "PROVIDER") {
@@ -21,7 +25,15 @@ export async function PATCH(request, { params }) {
         return NextResponse.json({ error: "Name and phone are required" }, { status: 400 });
     }
 
-    return NextResponse.json({ error: "Not implemented" }, { status: 501 });
+    // creditBalance is intentionally not editable here — it's only ever
+    // changed via the /credit endpoint so the CreditTransaction ledger
+    // stays the single source of truth for it.
+    const customer = await prisma.customer.update({
+        where: { id },
+        data: { name, phone },
+    });
+
+    return NextResponse.json(serialize(customer));
 }
 
 export async function DELETE(request, { params }) {
