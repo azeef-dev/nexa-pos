@@ -5,7 +5,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import toast from "react-hot-toast";
-import { Plus, Trash2, Wallet } from "lucide-react";
+import { Plus, Trash2, Wallet, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -28,6 +28,7 @@ export default function CustomersPage() {
     const [loading, setLoading] = useState(true);
     const [openCustomerId, setOpenCustomerId] = useState(null);
     const [transactions, setTransactions] = useState([]);
+    const [editingId, setEditingId] = useState(null);
 
     const {
         register,
@@ -71,6 +72,11 @@ export default function CustomersPage() {
         reset();
         setShowForm(false);
         loadCustomers();
+    }
+
+    function startEdit(customer) {
+        setEditingId(customer.id);
+        setShowForm(true);
     }
 
     async function removeCustomer(id) {
@@ -191,6 +197,9 @@ export default function CustomersPage() {
                                             <div className="flex items-center justify-end gap-2">
                                                 <button onClick={() => toggleCreditTab(c.id)} title="Credit Tab" className="text-muted-foreground hover:text-primary">
                                                     <Wallet className="h-4 w-4" />
+                                                </button>
+                                                <button onClick={() => startEdit(c)} title="Edit Customer" className="text-muted-foreground hover:text-foreground">
+                                                    <Pencil className="h-4 w-4" />
                                                 </button>
                                                 <button onClick={() => removeCustomer(c.id)} className="text-muted-foreground hover:text-destructive">
                                                     <Trash2 className="h-4 w-4" />
