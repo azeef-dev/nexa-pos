@@ -61,7 +61,7 @@ export async function POST(request) {
                     })),
                 },
             },
-            include: { items: true },
+            include: { items: true, customer: { select: { name: true } } },
         });
 
         for (const item of items) {
