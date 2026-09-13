@@ -147,6 +147,9 @@ export default function CustomersPage() {
             {showForm && (
                 <Card className="mb-6 border-border/60">
                     <CardContent className="p-6">
+                        <p className="mb-4 text-sm font-medium text-foreground">
+                            {editingId ? "Edit Customer" : "New Customer"}
+                        </p>
                         <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 sm:grid-cols-3">
                             <div className="flex flex-col gap-1.5">
                                 <Label htmlFor="name">Customer Name</Label>
@@ -158,10 +161,12 @@ export default function CustomersPage() {
                                 <Input id="phone" placeholder="+92 3xx xxxxxxx" {...register("phone")} />
                                 {errors.phone && <p className="text-xs text-destructive">{errors.phone.message}</p>}
                             </div>
-                            <div className="flex flex-col gap-1.5">
-                                <Label htmlFor="creditBalance">Opening Credit Balance (Rs.)</Label>
-                                <Input id="creditBalance" type="number" placeholder="0" {...register("creditBalance")} />
-                            </div>
+                            {!editingId && (
+                                <div className="flex flex-col gap-1.5">
+                                    <Label htmlFor="creditBalance">Opening Credit Balance (Rs.)</Label>
+                                    <Input id="creditBalance" type="number" placeholder="0" {...register("creditBalance")} />
+                                </div>
+                            )}
                             <div className="sm:col-span-3">
                                 <Button type="submit" disabled={isSubmitting}>
                                     {isSubmitting ? "Adding..." : "Save Customer"}
