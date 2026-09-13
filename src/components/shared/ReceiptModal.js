@@ -23,7 +23,7 @@ export default function ReceiptModal({ sale, businessName, onClose }) {
                 </div>
 
                 <div className="flex-1 overflow-y-auto bg-secondary/20 p-6">
-                    <div className="receipt-print-area mx-auto w-full max-w-[280px] rounded-md bg-white p-4 font-mono text-[13px] text-black shadow-sm">
+                    <div className="receipt-print-area mx-auto w-full max-w-70 rounded-md bg-white p-4 font-mono text-[13px] text-black shadow-sm">
                         <p className="text-center text-base font-bold">{businessName}</p>
                         <p className="text-center text-[11px] text-gray-500">
                             {new Date(sale.createdAt).toLocaleString()}
