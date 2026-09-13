@@ -55,21 +55,21 @@ export default function InventoryPage() {
     }, []);
 
     async function onSubmit(data) {
-        const res = await fetch("/api/inventory", {
-            method: "POST",
+        const isEditing = Boolean(editingId);
+        const res = await fetch(isEditing ? `/api/inventory/${editingId}` : "/api/inventory", {
+            method: isEditing ? "PATCH" : "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(data),
         });
         const result = await res.json();
 
         if (!res.ok) {
-            toast.error(result.error || "Failed to add item");
+            toast.error(result.error || `Failed to ${isEditing ? "update" : "add"} item`);
             return;
         }
 
-        toast.success(`${data.name} added to inventory`);
-        reset({ name: "", category: CATEGORIES[1], price: "", stock: "" });
-        setShowForm(false);
+        toast.success(isEditing ? `${data.name} updated` : `${data.name} added to inventory`);
+        cancelForm();
         loadItems();
     }
 
