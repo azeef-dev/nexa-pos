@@ -45,6 +45,20 @@ export const saleSchema = z
         path: ["customerId"],
     });
 
+export const changePasswordSchema = z
+    .object({
+        currentPassword: z.string({ error: "Current password is required" }).min(1, "Current password is required"),
+        newPassword: z
+            .string({ error: "New password must be at least 6 characters" })
+            .trim()
+            .min(6, "New password must be at least 6 characters")
+            .regex(/^\S+$/, "Password cannot contain spaces"),
+    })
+    .refine((data) => data.newPassword !== data.currentPassword, {
+        message: "New password must be different from current password",
+        path: ["newPassword"],
+    });
+
 export const providerSchema = z.object({
     businessName: z.string({ error: "Business name is required" }).trim().min(1, "Business name is required"),
     ownerName: z.string({ error: "Owner name is required" }).trim().min(1, "Owner name is required"),
