@@ -56,21 +56,23 @@ export default function CustomersPage() {
     }, []);
 
     async function onSubmit(data) {
-        const res = await fetch("/api/customers", {
-            method: "POST",
+        const isEditing = Boolean(editingId);
+        const res = await fetch(isEditing ? `/api/customers/${editingId}` : "/api/customers", {
+            method: isEditing ? "PATCH" : "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ ...data, creditBalance: data.creditBalance || 0 }),
+            body: JSON.stringify(
+                isEditing ? { name: data.name, phone: data.phone } : { ...data, creditBalance: data.creditBalance || 0 }
+            ),
         });
         const result = await res.json();
 
         if (!res.ok) {
-            toast.error(result.error || "Failed to add customer");
+            toast.error(result.error || `Failed to ${isEditing ? "update" : "add"} customer`);
             return;
         }
 
-        toast.success(`${data.name} added`);
-        reset();
-        setShowForm(false);
+        toast.success(isEditing ? `${data.name} updated` : `${data.name} added`);
+        cancelForm();
         loadCustomers();
     }
 
