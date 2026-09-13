@@ -175,7 +175,11 @@ export default function ProvidersPage() {
                                             >
                                                 {p.status === "ACTIVE" ? <Ban className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
                                             </button>
-                                            <button onClick={() => removeProvider(p.id)} className="text-muted-foreground hover:text-destructive">
+                                            <button
+                                                onClick={() => removeProvider(p.id)}
+                                                title="Remove (suspends instead if it has history)"
+                                                className="text-muted-foreground hover:text-destructive"
+                                            >
                                                 <Trash2 className="h-4 w-4" />
                                             </button>
                                         </div>
