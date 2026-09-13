@@ -169,7 +169,7 @@ export default function CustomersPage() {
                             )}
                             <div className="sm:col-span-3">
                                 <Button type="submit" disabled={isSubmitting}>
-                                    {isSubmitting ? "Adding..." : "Save Customer"}
+                                    {isSubmitting ? "Saving..." : editingId ? "Update Customer" : "Save Customer"}
                                 </Button>
                             </div>
                         </form>
