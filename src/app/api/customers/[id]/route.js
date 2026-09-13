@@ -15,6 +15,12 @@ export async function PATCH(request, { params }) {
         return NextResponse.json({ error: "Customer not found" }, { status: 404 });
     }
 
+    const { name, phone } = await request.json();
+
+    if (!name || !phone) {
+        return NextResponse.json({ error: "Name and phone are required" }, { status: 400 });
+    }
+
     return NextResponse.json({ error: "Not implemented" }, { status: 501 });
 }
 
