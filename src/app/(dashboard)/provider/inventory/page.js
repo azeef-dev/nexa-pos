@@ -5,7 +5,7 @@ import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import toast from "react-hot-toast";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -30,6 +30,7 @@ export default function InventoryPage() {
     const [showForm, setShowForm] = useState(false);
     const [items, setItems] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [editingId, setEditingId] = useState(null);
 
     const {
         register,
@@ -54,22 +55,34 @@ export default function InventoryPage() {
     }, []);
 
     async function onSubmit(data) {
-        const res = await fetch("/api/inventory", {
-            method: "POST",
+        const isEditing = Boolean(editingId);
+        const res = await fetch(isEditing ? `/api/inventory/${editingId}` : "/api/inventory", {
+            method: isEditing ? "PATCH" : "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(data),
         });
         const result = await res.json();
 
         if (!res.ok) {
-            toast.error(result.error || "Failed to add item");
+            toast.error(result.error || `Failed to ${isEditing ? "update" : "add"} item`);
             return;
         }
 
-        toast.success(`${data.name} added to inventory`);
-        reset({ name: "", category: CATEGORIES[1], price: "", stock: "" });
-        setShowForm(false);
+        toast.success(isEditing ? `${data.name} updated` : `${data.name} added to inventory`);
+        cancelForm();
         loadItems();
+    }
+
+    function startEdit(item) {
+        setEditingId(item.id);
+        reset({ name: item.name, category: item.category, price: item.price, stock: item.stock });
+        setShowForm(true);
+    }
+
+    function cancelForm() {
+        setEditingId(null);
+        setShowForm(false);
+        reset({ name: "", category: CATEGORIES[1], price: "", stock: "" });
     }
 
     async function removeItem(id) {
@@ -91,7 +104,7 @@ export default function InventoryPage() {
         <div>
             <div className="mb-6 flex items-center justify-between">
                 <h1 className="text-2xl font-semibold text-foreground">Inventory</h1>
-                <Button onClick={() => setShowForm((s) => !s)}>
+                <Button onClick={() => (showForm ? cancelForm() : setShowForm(true))}>
                     <Plus className="h-4 w-4" />
                     {showForm ? "Cancel" : "Add Item"}
                 </Button>
@@ -100,6 +113,9 @@ export default function InventoryPage() {
             {showForm && (
                 <Card className="mb-6 border-border/60">
                     <CardContent className="p-6">
+                        <p className="mb-4 text-sm font-medium text-foreground">
+                            {editingId ? "Edit Item" : "New Item"}
+                        </p>
                         <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 sm:grid-cols-4">
                             <div className="flex flex-col gap-1.5">
                                 <Label htmlFor="name">Item Name</Label>
@@ -139,7 +155,7 @@ export default function InventoryPage() {
                             </div>
                             <div className="sm:col-span-4">
                                 <Button type="submit" disabled={isSubmitting}>
-                                    {isSubmitting ? "Adding..." : "Save Item"}
+                                    {isSubmitting ? "Saving..." : editingId ? "Update Item" : "Save Item"}
                                 </Button>
                             </div>
                         </form>
@@ -181,6 +197,9 @@ export default function InventoryPage() {
                                         </span>
                                     </td>
                                     <td className="px-4 py-3 text-right">
+                                        <button onClick={() => startEdit(item)} className="mr-3 text-muted-foreground hover:text-foreground">
+                                            <Pencil className="h-4 w-4" />
+                                        </button>
                                         <button onClick={() => removeItem(item.id)} className="text-muted-foreground hover:text-destructive">
                                             <Trash2 className="h-4 w-4" />
                                         </button>
