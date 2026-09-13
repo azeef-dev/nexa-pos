@@ -36,8 +36,12 @@ export async function DELETE(request, { params }) {
         return NextResponse.json({ error: "Provider not found" }, { status: 404 });
     }
 
-    await prisma.provider.delete({ where: { id } });
-    await prisma.account.delete({ where: { id: provider.accountId } });
+    const [saleCount, customerCount, inventoryCount] = await Promise.all([
+        prisma.sale.count({ where: { providerId: id } }),
+        prisma.customer.count({ where: { providerId: id } }),
+        prisma.inventoryItem.count({ where: { providerId: id } }),
+    ]);
+    const hasHistory = saleCount > 0 || customerCount > 0 || inventoryCount > 0;
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ error: "Not implemented" }, { status: 501 });
 }
