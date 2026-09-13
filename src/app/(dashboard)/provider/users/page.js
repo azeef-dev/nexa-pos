@@ -3,24 +3,13 @@
 import { Fragment, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import toast from "react-hot-toast";
 import { Plus, Trash2, Wallet, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-
-const customerSchema = z.object({
-    name: z.string().trim().min(1, "Customer name is required"),
-    phone: z.string().trim().min(7, "Enter a valid phone number"),
-    creditBalance: z.coerce.number().min(0, "Balance cannot be negative").optional(),
-});
-
-const paymentSchema = z.object({
-    amount: z.coerce.number().positive("Enter an amount greater than 0"),
-    note: z.string().trim().optional(),
-});
+import { customerSchema, creditPaymentSchema as paymentSchema } from "@/lib/schemas";
 
 export default function CustomersPage() {
     const [showForm, setShowForm] = useState(false);

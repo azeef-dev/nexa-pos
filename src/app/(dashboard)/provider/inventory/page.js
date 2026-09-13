@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { z } from "zod";
 import toast from "react-hot-toast";
 import { Plus, Trash2, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -18,13 +17,7 @@ import {
     SelectValue,
 } from "@/components/ui/select";
 import { CATEGORIES } from "@/lib/data/products";
-
-const itemSchema = z.object({
-    name: z.string().trim().min(1, "Item name is required"),
-    category: z.string().min(1, "Select a category"),
-    price: z.coerce.number().positive("Price must be greater than 0"),
-    stock: z.coerce.number().int().min(0, "Stock cannot be negative"),
-});
+import { inventoryItemSchema as itemSchema } from "@/lib/schemas";
 
 export default function InventoryPage() {
     const [showForm, setShowForm] = useState(false);
