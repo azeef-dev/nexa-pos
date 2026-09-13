@@ -78,7 +78,12 @@ export default function ProvidersPage() {
     async function removeProvider(id) {
         const res = await fetch(`/api/providers/${id}`, { method: "DELETE" });
         if (res.ok) {
-            toast.success("Provider removed");
+            const result = await res.json();
+            if (result.archived) {
+                toast.success("Provider has sales/customer/inventory history — suspended instead of deleted");
+            } else {
+                toast.success("Provider removed");
+            }
             loadProviders();
         } else {
             toast.error("Failed to remove provider");
@@ -170,7 +175,11 @@ export default function ProvidersPage() {
                                             >
                                                 {p.status === "ACTIVE" ? <Ban className="h-4 w-4" /> : <CheckCircle2 className="h-4 w-4" />}
                                             </button>
-                                            <button onClick={() => removeProvider(p.id)} className="text-muted-foreground hover:text-destructive">
+                                            <button
+                                                onClick={() => removeProvider(p.id)}
+                                                title="Remove (suspends instead if it has history)"
+                                                className="text-muted-foreground hover:text-destructive"
+                                            >
                                                 <Trash2 className="h-4 w-4" />
                                             </button>
                                         </div>
