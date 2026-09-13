@@ -75,8 +75,17 @@ export default function CustomersPage() {
 
     async function removeCustomer(id) {
         const res = await fetch(`/api/customers/${id}`, { method: "DELETE" });
-        if (res.ok) loadCustomers();
-        else toast.error("Failed to remove customer");
+        if (res.ok) {
+            const result = await res.json();
+            if (result.archived) {
+                toast.success("Customer has transaction history — archived instead of deleted");
+            } else {
+                toast.success("Customer removed");
+            }
+            loadCustomers();
+        } else {
+            toast.error("Failed to remove customer");
+        }
     }
 
     async function toggleCreditTab(customerId) {
