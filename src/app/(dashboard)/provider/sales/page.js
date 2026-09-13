@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Printer } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
+import { printReceipt } from "@/lib/print-receipt";
 
 function formatTime(iso) {
     return new Date(iso).toLocaleString(undefined, {
@@ -15,6 +17,7 @@ function formatTime(iso) {
 export default function SalesPage() {
     const [sales, setSales] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [businessName, setBusinessName] = useState("NexaPOS");
 
     useEffect(() => {
         fetch("/api/sales")
@@ -23,6 +26,10 @@ export default function SalesPage() {
                 setSales(data);
                 setLoading(false);
             });
+
+        fetch("/api/auth/me")
+            .then((res) => (res.ok ? res.json() : null))
+            .then((data) => data && setBusinessName(data.businessName));
     }, []);
 
     return (
@@ -39,6 +46,7 @@ export default function SalesPage() {
                                 <th className="px-4 py-3 font-medium">Type</th>
                                 <th className="px-4 py-3 font-medium">Total</th>
                                 <th className="px-4 py-3 font-medium">Time</th>
+                                <th className="px-4 py-3"></th>
                             </tr>
                         </thead>
                         <tbody>
@@ -62,18 +70,27 @@ export default function SalesPage() {
                                     </td>
                                     <td className="px-4 py-3 font-medium text-foreground">Rs. {sale.total.toFixed(2)}</td>
                                     <td className="px-4 py-3 text-muted-foreground">{formatTime(sale.createdAt)}</td>
+                                    <td className="px-4 py-3 text-right">
+                                        <button
+                                            onClick={() => printReceipt(sale, businessName)}
+                                            title="Print receipt"
+                                            className="text-muted-foreground hover:text-primary"
+                                        >
+                                            <Printer className="h-4 w-4" />
+                                        </button>
+                                    </td>
                                 </tr>
                             ))}
                             {!loading && sales.length === 0 && (
                                 <tr>
-                                    <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                                    <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
                                         No sales recorded yet.
                                     </td>
                                 </tr>
                             )}
                             {loading && (
                                 <tr>
-                                    <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                                    <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
                                         Loading...
                                     </td>
                                 </tr>
