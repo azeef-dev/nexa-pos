@@ -13,7 +13,7 @@ export async function GET(request) {
     }
 
     const items = await prisma.inventoryItem.findMany({
-        where: { providerId: session.providerId },
+        where: { providerId: session.providerId, isActive: true },
         orderBy: { createdAt: "desc" },
     });
 
