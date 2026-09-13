@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { CATEGORIES } from "@/lib/data/products";
 import { useCartStore } from "@/lib/store/cart-store";
 import { queueOfflineSale } from "@/lib/offline-db";
+import ReceiptModal from "@/components/shared/ReceiptModal";
 
 const TAX_RATE = 0.05;
 
@@ -27,6 +28,8 @@ export default function PosPage() {
     const [customers, setCustomers] = useState([]);
     const [selectedCustomerId, setSelectedCustomerId] = useState("");
     const [isCredit, setIsCredit] = useState(false);
+    const [businessName, setBusinessName] = useState("NexaPOS");
+    const [receiptSale, setReceiptSale] = useState(null);
 
     const items = useCartStore((s) => s.items);
     const addItem = useCartStore((s) => s.addItem);
@@ -58,6 +61,9 @@ export default function PosPage() {
     useEffect(() => {
         loadProducts();
         loadCustomers();
+        fetch("/api/auth/me")
+            .then((res) => (res.ok ? res.json() : null))
+            .then((data) => data && setBusinessName(data.businessName));
     }, []);
 
     const filteredProducts = products.filter((p) => {
@@ -109,7 +115,8 @@ export default function PosPage() {
                 return;
             }
 
-            toast.success(`Order placed — Rs. ${total.toFixed(2)}`);
+            const savedSale = await res.json();
+            setReceiptSale(savedSale);
             clearCart();
             resetPaymentFields();
             loadProducts();
@@ -121,7 +128,14 @@ export default function PosPage() {
                     return cartItem ? { ...p, stock: Math.max(0, p.stock - cartItem.qty) } : p;
                 })
             );
+            const selectedCustomer = customers.find((c) => c.id === selectedCustomerId);
             toast.success("You're offline — sale saved locally, will sync automatically");
+            setReceiptSale({
+                ...payload,
+                id: "offline",
+                createdAt: new Date().toISOString(),
+                customer: selectedCustomer ? { name: selectedCustomer.name } : null,
+            });
             clearCart();
             resetPaymentFields();
         }
@@ -280,6 +294,8 @@ export default function PosPage() {
                     </Button>
                 </CardContent>
             </Card>
+
+            <ReceiptModal sale={receiptSale} businessName={businessName} onClose={() => setReceiptSale(null)} />
         </div>
     );
 }
