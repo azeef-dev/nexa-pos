@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { Printer } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { printReceipt } from "@/lib/print-receipt";
+import ReceiptModal from "@/components/shared/ReceiptModal";
 
 function formatTime(iso) {
     return new Date(iso).toLocaleString(undefined, {
@@ -18,6 +18,7 @@ export default function SalesPage() {
     const [sales, setSales] = useState([]);
     const [loading, setLoading] = useState(true);
     const [businessName, setBusinessName] = useState("NexaPOS");
+    const [selectedSale, setSelectedSale] = useState(null);
 
     useEffect(() => {
         fetch("/api/sales")
@@ -71,11 +72,7 @@ export default function SalesPage() {
                                     <td className="px-4 py-3 font-medium text-foreground">Rs. {sale.total.toFixed(2)}</td>
                                     <td className="px-4 py-3 text-muted-foreground">{formatTime(sale.createdAt)}</td>
                                     <td className="px-4 py-3 text-right">
-                                        <button
-                                            onClick={() => printReceipt(sale, businessName)}
-                                            title="Print receipt"
-                                            className="text-muted-foreground hover:text-primary"
-                                        >
+                                        <button onClick={() => setSelectedSale(sale)} title="View receipt" className="text-muted-foreground hover:text-primary">
                                             <Printer className="h-4 w-4" />
                                         </button>
                                     </td>
@@ -99,6 +96,8 @@ export default function SalesPage() {
                     </table>
                 </CardContent>
             </Card>
+
+            <ReceiptModal sale={selectedSale} businessName={businessName} onClose={() => setSelectedSale(null)} />
         </div>
     );
 }
