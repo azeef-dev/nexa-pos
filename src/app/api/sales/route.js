@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
+import { TAX_RATE } from "@/lib/tax";
 
 function serialize(sale) {
     return {
@@ -33,7 +34,7 @@ export async function POST(request) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { items, subtotal, tax, total, customerId, isCredit } = await request.json();
+    const { items, customerId, isCredit } = await request.json();
 
     if (!items || items.length === 0) {
         return NextResponse.json({ error: "Cart is empty" }, { status: 400 });
@@ -61,15 +62,21 @@ export async function POST(request) {
         return NextResponse.json({ error: "Item quantities must be positive whole numbers" }, { status: 400 });
     }
 
+    // Recomputed from the DB, not trusted from the client — a tampered
+    // subtotal/tax/total in the request body has no effect on what's charged.
+    const computedSubtotal = items.reduce((sum, item) => sum + Number(dbItemsById.get(item.id).price) * item.qty, 0);
+    const computedTax = computedSubtotal * TAX_RATE;
+    const computedTotal = computedSubtotal + computedTax;
+
     const sale = await prisma.$transaction(async (tx) => {
         const newSale = await tx.sale.create({
             data: {
                 providerId: session.providerId,
                 customerId: customerId || null,
                 isCredit: !!isCredit,
-                subtotal,
-                tax,
-                total,
+                subtotal: computedSubtotal,
+                tax: computedTax,
+                total: computedTotal,
                 items: {
                     create: items.map((item) => {
                         const dbItem = dbItemsById.get(item.id);
@@ -95,10 +102,10 @@ export async function POST(request) {
         if (isCredit && customerId) {
             await tx.customer.update({
                 where: { id: customerId },
-                data: { creditBalance: { increment: total } },
+                data: { creditBalance: { increment: computedTotal } },
             });
             await tx.creditTransaction.create({
-                data: { customerId, type: "CHARGE", amount: total, note: `Sale #${newSale.id.slice(-6)}` },
+                data: { customerId, type: "CHARGE", amount: computedTotal, note: `Sale #${newSale.id.slice(-6)}` },
             });
         }
 
