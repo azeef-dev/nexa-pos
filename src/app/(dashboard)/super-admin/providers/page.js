@@ -78,7 +78,12 @@ export default function ProvidersPage() {
     async function removeProvider(id) {
         const res = await fetch(`/api/providers/${id}`, { method: "DELETE" });
         if (res.ok) {
-            toast.success("Provider removed");
+            const result = await res.json();
+            if (result.archived) {
+                toast.success("Provider has sales/customer/inventory history — suspended instead of deleted");
+            } else {
+                toast.success("Provider removed");
+            }
             loadProviders();
         } else {
             toast.error("Failed to remove provider");
