@@ -15,6 +15,14 @@ export async function DELETE(request, { params }) {
         return NextResponse.json({ error: "Item not found" }, { status: 404 });
     }
 
+    const saleCount = await prisma.saleItem.count({ where: { inventoryItemId: id } });
+
+    if (saleCount > 0) {
+        // Ye item pehle bik chuka hai — delete nahi, archive karo taake purani sales safe rahein
+        await prisma.inventoryItem.update({ where: { id }, data: { isActive: false } });
+        return NextResponse.json({ success: true, archived: true });
+    }
+
     await prisma.inventoryItem.delete({ where: { id } });
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, archived: false });
 }
