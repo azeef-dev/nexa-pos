@@ -17,8 +17,7 @@ import { CATEGORIES } from "@/lib/data/products";
 import { useCartStore } from "@/lib/store/cart-store";
 import { queueOfflineSale } from "@/lib/offline-db";
 import ReceiptModal from "@/components/shared/ReceiptModal";
-
-const TAX_RATE = 0.05;
+import { TAX_RATE } from "@/lib/tax";
 
 export default function PosPage() {
     const [activeCategory, setActiveCategory] = useState("All");
@@ -112,6 +111,10 @@ export default function PosPage() {
             if (!res.ok) {
                 const result = await res.json();
                 toast.error(result.error || "Checkout failed");
+                // The cart's stock numbers may be stale (another sale beat us
+                // to the last unit, an item was edited/removed, etc.) — refresh
+                // so the cashier sees what's actually available before retrying.
+                loadProducts();
                 return;
             }
 
