@@ -70,5 +70,20 @@ export function buildTools(providerId) {
         },
     });
 
-    return [getTodaysSummary, getLowStockItems, getTopProducts];
+    const getCustomersWithBalance = betaZodTool({
+        name: "get_customers_with_balance",
+        description: "Get customers who currently owe money on their credit tab (outstanding balance), sorted highest first.",
+        inputSchema: z.object({}),
+        run: async () => {
+            const customers = await prisma.customer.findMany({
+                where: { providerId, isActive: true, creditBalance: { gt: 0 } },
+                select: { name: true, phone: true, creditBalance: true },
+                orderBy: { creditBalance: "desc" },
+                take: 20,
+            });
+            return JSON.stringify(customers.map((c) => ({ ...c, creditBalance: Number(c.creditBalance) })));
+        },
+    });
+
+    return [getTodaysSummary, getLowStockItems, getTopProducts, getCustomersWithBalance];
 }
