@@ -1,43 +1,30 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, Users, Star } from "lucide-react";
-
-function isToday(iso) {
-    const d = new Date(iso);
-    const now = new Date();
-    return d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-}
+import SalesTrendChart from "@/components/shared/SalesTrendChart";
+import TopProductsChart from "@/components/shared/TopProductsChart";
 
 export default function ProviderHomePage() {
-    const [sales, setSales] = useState([]);
-    const [customerCount, setCustomerCount] = useState(0);
+    const [report, setReport] = useState({
+        todaysSales: 0,
+        totalCustomers: 0,
+        bestSeller: "—",
+        salesByDay: [],
+        topProducts: [],
+    });
 
     useEffect(() => {
-        fetch("/api/sales")
-            .then((res) => (res.ok ? res.json() : []))
-            .then(setSales);
-
-        fetch("/api/customers")
-            .then((res) => (res.ok ? res.json() : []))
-            .then((data) => setCustomerCount(data.length));
+        fetch("/api/reports/dashboard")
+            .then((res) => (res.ok ? res.json() : null))
+            .then((data) => data && setReport(data));
     }, []);
 
-    const todaysSales = sales.filter((s) => isToday(s.createdAt)).reduce((sum, s) => sum + s.total, 0);
-
-    const bestSellerMap = {};
-    sales.forEach((sale) => {
-        sale.items.forEach((item) => {
-            bestSellerMap[item.name] = (bestSellerMap[item.name] || 0) + item.qty;
-        });
-    });
-    const bestSeller = Object.entries(bestSellerMap).sort((a, b) => b[1] - a[1])[0]?.[0] || "—";
-
     const stats = [
-        { label: "Today's Sales", value: `Rs. ${todaysSales.toFixed(2)}`, icon: DollarSign },
-        { label: "Total Customers", value: String(customerCount), icon: Users },
-        { label: "Best Seller", value: bestSeller, icon: Star },
+        { label: "Today's Sales", value: `Rs. ${report.todaysSales.toFixed(2)}`, icon: DollarSign },
+        { label: "Total Customers", value: String(report.totalCustomers), icon: Users },
+        { label: "Best Seller (30d)", value: report.bestSeller, icon: Star },
     ];
 
     return (
@@ -57,6 +44,26 @@ export default function ProviderHomePage() {
                         </CardContent>
                     </Card>
                 ))}
+            </div>
+
+            <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                <Card className="border-border/60">
+                    <CardHeader>
+                        <CardTitle className="text-sm text-muted-foreground">Sales — last 7 days</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <SalesTrendChart data={report.salesByDay} />
+                    </CardContent>
+                </Card>
+
+                <Card className="border-border/60">
+                    <CardHeader>
+                        <CardTitle className="text-sm text-muted-foreground">Top products — last 30 days</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <TopProductsChart data={report.topProducts} />
+                    </CardContent>
+                </Card>
             </div>
         </div>
     );
