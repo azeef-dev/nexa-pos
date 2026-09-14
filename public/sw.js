@@ -21,7 +21,7 @@ self.addEventListener("fetch", (event) => {
     const { request } = event;
 
     if (request.url.includes("/api/")) return;
-    if (request.method !== "GET") return; // POST/PATCH/DELETE ko skip karo
+    if (request.method !== "GET") return;
 
     if (request.mode === "navigate") {
         event.respondWith(
