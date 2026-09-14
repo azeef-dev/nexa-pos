@@ -85,5 +85,29 @@ export function buildTools(providerId) {
         },
     });
 
-    return [getTodaysSummary, getLowStockItems, getTopProducts, getCustomersWithBalance];
+    const getSalesInRange = betaZodTool({
+        name: "get_sales_in_range",
+        description: "Get total sales amount and count of sales between two dates (inclusive). Dates are YYYY-MM-DD. Range is capped at 90 days.",
+        inputSchema: z.object({
+            startDate: z.string().describe("Start date, YYYY-MM-DD"),
+            endDate: z.string().describe("End date, YYYY-MM-DD"),
+        }),
+        run: async ({ startDate, endDate }) => {
+            const start = new Date(`${startDate}T00:00:00.000Z`);
+            const end = new Date(`${endDate}T23:59:59.999Z`);
+            if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime()) || end < start) {
+                return JSON.stringify({ error: "Invalid date range" });
+            }
+            const cappedEnd = Math.min(end.getTime(), start.getTime() + 90 * 24 * 60 * 60 * 1000);
+
+            const sales = await prisma.sale.findMany({
+                where: { providerId, createdAt: { gte: start, lte: new Date(cappedEnd) } },
+                select: { total: true },
+            });
+            const totalRs = sales.reduce((sum, s) => sum + Number(s.total), 0);
+            return JSON.stringify({ salesCount: sales.length, totalRs });
+        },
+    });
+
+    return [getTodaysSummary, getLowStockItems, getTopProducts, getCustomersWithBalance, getSalesInRange];
 }
