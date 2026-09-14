@@ -24,14 +24,31 @@ export async function POST(request) {
 
     const tools = buildTools(session.providerId);
 
-    const finalMessage = await client.beta.messages.toolRunner({
-        model: "claude-opus-5",
-        max_tokens: 4096,
-        output_config: { effort: "low" },
-        system: SYSTEM_PROMPT,
-        tools,
-        messages,
-    });
+    let finalMessage;
+    try {
+        finalMessage = await client.beta.messages.toolRunner({
+            model: "claude-opus-5",
+            max_tokens: 4096,
+            output_config: { effort: "low" },
+            system: SYSTEM_PROMPT,
+            tools,
+            messages,
+        });
+    } catch (err) {
+        if (err instanceof Anthropic.AuthenticationError) {
+            return NextResponse.json({ error: "Assistant is misconfigured (invalid API key)." }, { status: 500 });
+        }
+        if (err instanceof Anthropic.RateLimitError) {
+            return NextResponse.json({ error: "Assistant is busy right now — try again in a moment." }, { status: 429 });
+        }
+        if (err instanceof Anthropic.APIError) {
+            // Covers billing/credit and other invalid-request cases from the
+            // Anthropic account itself — safe to surface, it's operational
+            // detail the shop owner can't fix but the app operator needs to see.
+            return NextResponse.json({ error: `Assistant unavailable: ${err.message}` }, { status: 502 });
+        }
+        throw err;
+    }
 
     const reply = finalMessage.content.find((b) => b.type === "text")?.text || "";
 
