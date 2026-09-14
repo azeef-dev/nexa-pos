@@ -4,9 +4,16 @@ import { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, Users, Star } from "lucide-react";
 import SalesTrendChart from "@/components/shared/SalesTrendChart";
+import TopProductsChart from "@/components/shared/TopProductsChart";
 
 export default function ProviderHomePage() {
-    const [report, setReport] = useState({ todaysSales: 0, totalCustomers: 0, bestSeller: "—", salesByDay: [] });
+    const [report, setReport] = useState({
+        todaysSales: 0,
+        totalCustomers: 0,
+        bestSeller: "—",
+        salesByDay: [],
+        topProducts: [],
+    });
 
     useEffect(() => {
         fetch("/api/reports/dashboard")
@@ -39,14 +46,25 @@ export default function ProviderHomePage() {
                 ))}
             </div>
 
-            <Card className="mt-4 border-border/60">
-                <CardHeader>
-                    <CardTitle className="text-sm text-muted-foreground">Sales — last 7 days</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <SalesTrendChart data={report.salesByDay} />
-                </CardContent>
-            </Card>
+            <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                <Card className="border-border/60">
+                    <CardHeader>
+                        <CardTitle className="text-sm text-muted-foreground">Sales — last 7 days</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <SalesTrendChart data={report.salesByDay} />
+                    </CardContent>
+                </Card>
+
+                <Card className="border-border/60">
+                    <CardHeader>
+                        <CardTitle className="text-sm text-muted-foreground">Top products — last 30 days</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <TopProductsChart data={report.topProducts} />
+                    </CardContent>
+                </Card>
+            </div>
         </div>
     );
 }
