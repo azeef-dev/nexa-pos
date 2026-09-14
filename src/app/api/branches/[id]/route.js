@@ -28,3 +28,27 @@ export async function PATCH(request, { params }) {
 
     return NextResponse.json(branch);
 }
+
+export async function DELETE(request, { params }) {
+    const session = await getSession(request);
+    if (!session || session.role !== "PROVIDER") {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    const { id } = await params;
+    const existing = await prisma.branch.findUnique({ where: { id } });
+
+    if (!existing || existing.providerId !== session.providerId) {
+        return NextResponse.json({ error: "Branch not found" }, { status: 404 });
+    }
+
+    // branchId is optional on both models — unassign rather than block the
+    // delete, so removing a branch never destroys inventory or sales history.
+    await prisma.$transaction([
+        prisma.inventoryItem.updateMany({ where: { branchId: id }, data: { branchId: null } }),
+        prisma.sale.updateMany({ where: { branchId: id }, data: { branchId: null } }),
+        prisma.branch.delete({ where: { id } }),
+    ]);
+
+    return NextResponse.json({ success: true });
+}
