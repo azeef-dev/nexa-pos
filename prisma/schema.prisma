@@ -25,12 +25,19 @@ enum CreditTransactionType {
 model Account {
   id           String   @id @default(cuid())
   role         Role
+  name         String?
   email        String   @unique
   passwordHash String
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
   provider     Provider?
+
+  // Set only on a PROVIDER-role account that is a staff/cashier login for
+  // someone else's business, as opposed to an owner account (which is
+  // instead the target of Provider.accountId above).
+  staffOfId    String?
+  staffOf      Provider? @relation("StaffAccounts", fields: [staffOfId], references: [id])
 }
 
 model Provider {
@@ -42,6 +49,8 @@ model Provider {
   status       ProviderStatus @default(ACTIVE)
   createdAt    DateTime       @default(now())
   updatedAt    DateTime       @updatedAt
+
+  staff        Account[]      @relation("StaffAccounts")
 
   branches     Branch[]
   inventory    InventoryItem[]

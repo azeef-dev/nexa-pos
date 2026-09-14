@@ -11,7 +11,7 @@ export async function POST(request) {
 
     const account = await prisma.account.findUnique({
         where: { email },
-        include: { provider: true },
+        include: { provider: true, staffOf: true },
     });
 
     if (!account) {
@@ -23,14 +23,19 @@ export async function POST(request) {
         return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
     }
 
-    if (account.role === "PROVIDER" && account.provider?.status === "SUSPENDED") {
+    // An owner logs in with an account that owns a Provider (account.provider);
+    // a staff/cashier login instead points at the provider it belongs to via
+    // staffOf. Either way this resolves to "which business is this session for".
+    const provider = account.provider || account.staffOf;
+
+    if (account.role === "PROVIDER" && provider?.status === "SUSPENDED") {
         return NextResponse.json({ error: "Your account has been suspended" }, { status: 403 });
     }
 
     const token = await signToken({
         accountId: account.id,
         role: account.role,
-        providerId: account.provider?.id || null,
+        providerId: provider?.id || null,
     });
 
     const response = NextResponse.json({

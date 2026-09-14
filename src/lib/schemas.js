@@ -66,6 +66,20 @@ export const changePasswordSchema = z
         path: ["newPassword"],
     });
 
+export const staffSchema = z.object({
+    name: z.string({ error: "Name is required" }).trim().min(1, "Name is required"),
+    email: z
+        .string({ error: "Email is required" })
+        .trim()
+        .min(1, "Email is required")
+        .email("Enter a valid email"),
+    password: z
+        .string({ error: "Password must be at least 6 characters" })
+        .trim()
+        .min(6, "Password must be at least 6 characters")
+        .regex(/^\S+$/, "Password cannot contain spaces"),
+});
+
 export const providerSchema = z.object({
     businessName: z.string({ error: "Business name is required" }).trim().min(1, "Business name is required"),
     ownerName: z.string({ error: "Owner name is required" }).trim().min(1, "Owner name is required"),
