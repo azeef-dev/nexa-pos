@@ -26,6 +26,8 @@ export default function PosPage() {
     const [loading, setLoading] = useState(true);
     const [customers, setCustomers] = useState([]);
     const [selectedCustomerId, setSelectedCustomerId] = useState("");
+    const [branches, setBranches] = useState([]);
+    const [selectedBranchId, setSelectedBranchId] = useState("");
     const [isCredit, setIsCredit] = useState(false);
     const [businessName, setBusinessName] = useState("NexaPOS");
     const [receiptSale, setReceiptSale] = useState(null);
@@ -57,9 +59,19 @@ export default function PosPage() {
         }
     }
 
+    async function loadBranches() {
+        try {
+            const res = await fetch("/api/branches");
+            if (res.ok) setBranches(await res.json());
+        } catch {
+            // offline
+        }
+    }
+
     useEffect(() => {
         loadProducts();
         loadCustomers();
+        loadBranches();
         fetch("/api/auth/me")
             .then((res) => (res.ok ? res.json() : null))
             .then((data) => data && setBusinessName(data.businessName));
