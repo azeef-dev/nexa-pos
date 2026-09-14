@@ -252,6 +252,21 @@ export default function PosPage() {
                     </div>
 
                     <div className="mt-4 space-y-3 border-t border-border pt-4">
+                        {branches.length > 0 && (
+                            <Select value={selectedBranchId} onValueChange={setSelectedBranchId}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="No branch" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {branches.map((b) => (
+                                        <SelectItem key={b.id} value={b.id}>
+                                            {b.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        )}
+
                         <div className="flex gap-2">
                             <button
                                 onClick={() => setIsCredit(false)}
