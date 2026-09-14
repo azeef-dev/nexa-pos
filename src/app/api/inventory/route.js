@@ -30,10 +30,17 @@ export async function POST(request) {
 
     const { data, error } = validateBody(inventoryItemSchema, await request.json());
     if (error) return error;
-    const { name, category, price, stock } = data;
+    const { name, category, price, stock, branchId } = data;
+
+    if (branchId) {
+        const branch = await prisma.branch.findUnique({ where: { id: branchId } });
+        if (!branch || branch.providerId !== session.providerId) {
+            return NextResponse.json({ error: "Branch not found" }, { status: 404 });
+        }
+    }
 
     const item = await prisma.inventoryItem.create({
-        data: { providerId: session.providerId, name, category, price, stock },
+        data: { providerId: session.providerId, name, category, price, stock, branchId: branchId || null },
     });
 
     return NextResponse.json(serialize(item));
