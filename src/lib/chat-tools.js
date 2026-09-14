@@ -44,5 +44,31 @@ export function buildTools(providerId) {
         },
     });
 
-    return [getTodaysSummary, getLowStockItems];
+    const getTopProducts = betaZodTool({
+        name: "get_top_products",
+        description: "Get the best-selling products (by quantity sold) over a recent number of days.",
+        inputSchema: z.object({
+            days: z.number().int().min(1).max(90).optional().describe("How many days back to look. Defaults to 30, max 90."),
+        }),
+        run: async ({ days }) => {
+            const windowStart = new Date(Date.now() - (days ?? 30) * 24 * 60 * 60 * 1000);
+            const sales = await prisma.sale.findMany({
+                where: { providerId, createdAt: { gte: windowStart } },
+                include: { items: true },
+            });
+            const qtyByProduct = new Map();
+            for (const sale of sales) {
+                for (const item of sale.items) {
+                    qtyByProduct.set(item.name, (qtyByProduct.get(item.name) || 0) + item.qty);
+                }
+            }
+            const topProducts = [...qtyByProduct.entries()]
+                .sort((a, b) => b[1] - a[1])
+                .slice(0, 10)
+                .map(([name, qty]) => ({ name, qty }));
+            return JSON.stringify(topProducts);
+        },
+    });
+
+    return [getTodaysSummary, getLowStockItems, getTopProducts];
 }
