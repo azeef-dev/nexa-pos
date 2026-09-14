@@ -200,6 +200,7 @@ export default function InventoryPage() {
                                 <th className="px-4 py-3 font-medium">Category</th>
                                 <th className="px-4 py-3 font-medium">Price</th>
                                 <th className="px-4 py-3 font-medium">Stock</th>
+                                <th className="px-4 py-3 font-medium">Branch</th>
                                 <th className="px-4 py-3 font-medium">Status</th>
                                 <th className="px-4 py-3"></th>
                             </tr>
@@ -211,6 +212,7 @@ export default function InventoryPage() {
                                     <td className="px-4 py-3 text-muted-foreground">{item.category}</td>
                                     <td className="px-4 py-3 text-foreground">Rs. {item.price}</td>
                                     <td className="px-4 py-3 text-foreground">{item.stock}</td>
+                                    <td className="px-4 py-3 text-muted-foreground">{item.branch?.name || "—"}</td>
                                     <td className="px-4 py-3">
                                         <span
                                             className={
@@ -236,14 +238,14 @@ export default function InventoryPage() {
                             ))}
                             {!loading && items.length === 0 && (
                                 <tr>
-                                    <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                                    <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
                                         No items added yet.
                                     </td>
                                 </tr>
                             )}
                             {loading && (
                                 <tr>
-                                    <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                                    <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
                                         Loading...
                                     </td>
                                 </tr>

@@ -16,6 +16,7 @@ export async function GET(request) {
 
     const items = await prisma.inventoryItem.findMany({
         where: { providerId: session.providerId, isActive: true },
+        include: { branch: { select: { name: true } } },
         orderBy: { createdAt: "desc" },
     });
 
