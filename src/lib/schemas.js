@@ -80,6 +80,17 @@ export const staffSchema = z.object({
         .regex(/^\S+$/, "Password cannot contain spaces"),
 });
 
+export const chatSchema = z.object({
+    messages: z
+        .array(
+            z.object({
+                role: z.enum(["user", "assistant"]),
+                content: z.string().min(1),
+            })
+        )
+        .min(1, "At least one message is required"),
+});
+
 export const providerSchema = z.object({
     businessName: z.string({ error: "Business name is required" }).trim().min(1, "Business name is required"),
     ownerName: z.string({ error: "Owner name is required" }).trim().min(1, "Owner name is required"),
