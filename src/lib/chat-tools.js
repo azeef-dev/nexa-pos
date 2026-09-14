@@ -27,5 +27,22 @@ export function buildTools(providerId) {
         },
     });
 
-    return [getTodaysSummary];
+    const getLowStockItems = betaZodTool({
+        name: "get_low_stock_items",
+        description: "Get inventory items that are low on stock (at or below a threshold, default 10 units) or out of stock.",
+        inputSchema: z.object({
+            threshold: z.number().int().min(0).optional().describe("Stock level to consider 'low'. Defaults to 10."),
+        }),
+        run: async ({ threshold }) => {
+            const items = await prisma.inventoryItem.findMany({
+                where: { providerId, isActive: true, stock: { lte: threshold ?? 10 } },
+                select: { name: true, stock: true, category: true },
+                orderBy: { stock: "asc" },
+                take: 20,
+            });
+            return JSON.stringify(items);
+        },
+    });
+
+    return [getTodaysSummary, getLowStockItems];
 }
