@@ -4,40 +4,19 @@ import { useEffect, useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { DollarSign, Users, Star } from "lucide-react";
 
-function isToday(iso) {
-    const d = new Date(iso);
-    const now = new Date();
-    return d.getDate() === now.getDate() && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
-}
-
 export default function ProviderHomePage() {
-    const [sales, setSales] = useState([]);
-    const [customerCount, setCustomerCount] = useState(0);
+    const [report, setReport] = useState({ todaysSales: 0, totalCustomers: 0, bestSeller: "—" });
 
     useEffect(() => {
-        fetch("/api/sales")
-            .then((res) => (res.ok ? res.json() : []))
-            .then(setSales);
-
-        fetch("/api/customers")
-            .then((res) => (res.ok ? res.json() : []))
-            .then((data) => setCustomerCount(data.length));
+        fetch("/api/reports/dashboard")
+            .then((res) => (res.ok ? res.json() : null))
+            .then((data) => data && setReport(data));
     }, []);
 
-    const todaysSales = sales.filter((s) => isToday(s.createdAt)).reduce((sum, s) => sum + s.total, 0);
-
-    const bestSellerMap = {};
-    sales.forEach((sale) => {
-        sale.items.forEach((item) => {
-            bestSellerMap[item.name] = (bestSellerMap[item.name] || 0) + item.qty;
-        });
-    });
-    const bestSeller = Object.entries(bestSellerMap).sort((a, b) => b[1] - a[1])[0]?.[0] || "—";
-
     const stats = [
-        { label: "Today's Sales", value: `Rs. ${todaysSales.toFixed(2)}`, icon: DollarSign },
-        { label: "Total Customers", value: String(customerCount), icon: Users },
-        { label: "Best Seller", value: bestSeller, icon: Star },
+        { label: "Today's Sales", value: `Rs. ${report.todaysSales.toFixed(2)}`, icon: DollarSign },
+        { label: "Total Customers", value: String(report.totalCustomers), icon: Users },
+        { label: "Best Seller (30d)", value: report.bestSeller, icon: Star },
     ];
 
     return (
