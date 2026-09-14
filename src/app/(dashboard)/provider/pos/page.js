@@ -110,6 +110,7 @@ export default function PosPage() {
             tax,
             total,
             customerId: selectedCustomerId || null,
+            branchId: selectedBranchId || null,
             isCredit,
         };
 
