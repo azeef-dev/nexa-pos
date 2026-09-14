@@ -1,6 +1,17 @@
 "use client";
 
-import { Bar, BarChart, LabelList, ResponsiveContainer, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, LabelList, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+
+function ChartTooltip({ active, payload }) {
+    if (!active || !payload?.length) return null;
+    const { name, qty } = payload[0].payload;
+    return (
+        <div className="rounded-lg border border-border bg-popover px-3 py-2 text-xs shadow-sm">
+            <p className="mb-1 font-medium text-popover-foreground">{name}</p>
+            <p className="text-muted-foreground">{qty} sold</p>
+        </div>
+    );
+}
 
 export default function TopProductsChart({ data }) {
     if (data.length === 0) {
@@ -20,6 +31,7 @@ export default function TopProductsChart({ data }) {
                         width={110}
                         tick={{ fill: "var(--foreground)", fontSize: 12 }}
                     />
+                    <Tooltip cursor={{ fill: "var(--muted)" }} content={<ChartTooltip />} />
                     <Bar dataKey="qty" fill="var(--chart-2)" radius={[0, 4, 4, 0]} maxBarSize={20}>
                         <LabelList dataKey="qty" position="right" fill="var(--muted-foreground)" fontSize={12} />
                     </Bar>
