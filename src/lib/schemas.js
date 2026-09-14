@@ -8,6 +8,12 @@ export const inventoryItemSchema = z.object({
     category: z.string({ error: "Select a category" }).min(1, "Select a category"),
     price: z.coerce.number({ error: "Price must be greater than 0" }).positive("Price must be greater than 0"),
     stock: z.coerce.number({ error: "Stock is required" }).int().min(0, "Stock cannot be negative"),
+    branchId: z.string().min(1).nullable().optional(),
+});
+
+export const branchSchema = z.object({
+    name: z.string({ error: "Branch name is required" }).trim().min(1, "Branch name is required"),
+    address: z.string().trim().optional(),
 });
 
 export const customerSchema = z.object({
