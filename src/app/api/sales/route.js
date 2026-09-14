@@ -30,7 +30,11 @@ export async function GET(request) {
 
     const sales = await prisma.sale.findMany({
         where: { providerId: session.providerId },
-        include: { items: true, customer: { select: { name: true } } },
+        include: {
+            items: true,
+            customer: { select: { name: true } },
+            branch: { select: { name: true } },
+        },
         orderBy: { createdAt: "desc" },
     });
 
@@ -45,7 +49,14 @@ export async function POST(request) {
 
     const { data: body, error: bodyError } = validateBody(saleSchema, await request.json());
     if (bodyError) return bodyError;
-    const { items, customerId, isCredit } = body;
+    const { items, customerId, branchId, isCredit } = body;
+
+    if (branchId) {
+        const branch = await prisma.branch.findUnique({ where: { id: branchId } });
+        if (!branch || branch.providerId !== session.providerId) {
+            return NextResponse.json({ error: "Branch not found" }, { status: 404 });
+        }
+    }
 
     const requestedIds = [...new Set(items.map((i) => i.id))];
     const dbItems = await prisma.inventoryItem.findMany({
@@ -73,6 +84,7 @@ export async function POST(request) {
                 data: {
                     providerId: session.providerId,
                     customerId: customerId || null,
+                    branchId: branchId || null,
                     isCredit: !!isCredit,
                     subtotal: computedSubtotal,
                     tax: computedTax,
@@ -89,7 +101,11 @@ export async function POST(request) {
                         }),
                     },
                 },
-                include: { items: true, customer: { select: { name: true } } },
+                include: {
+                    items: true,
+                    customer: { select: { name: true } },
+                    branch: { select: { name: true } },
+                },
             });
 
             for (const item of items) {

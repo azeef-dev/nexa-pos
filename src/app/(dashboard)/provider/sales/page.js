@@ -44,6 +44,7 @@ export default function SalesPage() {
                                 <th className="px-4 py-3 font-medium">Order</th>
                                 <th className="px-4 py-3 font-medium">Items</th>
                                 <th className="px-4 py-3 font-medium">Customer</th>
+                                <th className="px-4 py-3 font-medium">Branch</th>
                                 <th className="px-4 py-3 font-medium">Type</th>
                                 <th className="px-4 py-3 font-medium">Total</th>
                                 <th className="px-4 py-3 font-medium">Time</th>
@@ -58,6 +59,7 @@ export default function SalesPage() {
                                         {sale.items.map((i) => `${i.name} x${i.qty}`).join(", ")}
                                     </td>
                                     <td className="px-4 py-3 text-muted-foreground">{sale.customer?.name || "—"}</td>
+                                    <td className="px-4 py-3 text-muted-foreground">{sale.branch?.name || "—"}</td>
                                     <td className="px-4 py-3">
                                         <span
                                             className={
@@ -80,14 +82,14 @@ export default function SalesPage() {
                             ))}
                             {!loading && sales.length === 0 && (
                                 <tr>
-                                    <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
+                                    <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">
                                         No sales recorded yet.
                                     </td>
                                 </tr>
                             )}
                             {loading && (
                                 <tr>
-                                    <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
+                                    <td colSpan={8} className="px-4 py-8 text-center text-muted-foreground">
                                         Loading...
                                     </td>
                                 </tr>
