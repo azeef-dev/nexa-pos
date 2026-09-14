@@ -44,6 +44,7 @@ export const saleSchema = z
     .object({
         items: z.array(saleItemSchema).min(1, "Cart is empty"),
         customerId: z.string().min(1).nullable().optional(),
+        branchId: z.string().min(1).nullable().optional(),
         isCredit: z.boolean().optional(),
     })
     .refine((data) => !data.isCredit || data.customerId, {
