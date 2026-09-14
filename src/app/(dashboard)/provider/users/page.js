@@ -104,6 +104,12 @@ export default function CustomersPage() {
     }
 
     async function onPaymentSubmit(data) {
+        const customer = customers.find((c) => c.id === openCustomerId);
+        if (customer && data.amount > customer.creditBalance) {
+            toast.error(`Payment cannot exceed the outstanding balance of Rs. ${customer.creditBalance}`);
+            return;
+        }
+
         const res = await fetch(`/api/customers/${openCustomerId}/credit`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
