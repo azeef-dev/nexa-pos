@@ -9,8 +9,16 @@ export default function PwaRegister() {
     const isOnline = useOnlineStatus();
 
     useEffect(() => {
-        if ("serviceWorker" in navigator) {
+        if (!("serviceWorker" in navigator)) return;
+
+        if (process.env.NODE_ENV === "production") {
             navigator.serviceWorker.register("/sw.js").catch(() => { });
+        } else {
+            // Dev mode: SW HMR/Turbopack ke sath conflict karta hai, isliye
+            // koi purana registered SW ho to usay unregister kar do.
+            navigator.serviceWorker.getRegistrations().then((regs) => {
+                regs.forEach((reg) => reg.unregister());
+            });
         }
     }, []);
 
