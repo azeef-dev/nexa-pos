@@ -15,6 +15,7 @@ export async function syncOfflineSales() {
                     tax: sale.tax,
                     total: sale.total,
                     customerId: sale.customerId || null,
+                    branchId: sale.branchId || null,
                     isCredit: !!sale.isCredit,
                 }),
             });

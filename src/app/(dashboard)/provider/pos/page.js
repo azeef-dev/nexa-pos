@@ -26,6 +26,8 @@ export default function PosPage() {
     const [loading, setLoading] = useState(true);
     const [customers, setCustomers] = useState([]);
     const [selectedCustomerId, setSelectedCustomerId] = useState("");
+    const [branches, setBranches] = useState([]);
+    const [selectedBranchId, setSelectedBranchId] = useState("");
     const [isCredit, setIsCredit] = useState(false);
     const [businessName, setBusinessName] = useState("NexaPOS");
     const [receiptSale, setReceiptSale] = useState(null);
@@ -57,9 +59,19 @@ export default function PosPage() {
         }
     }
 
+    async function loadBranches() {
+        try {
+            const res = await fetch("/api/branches");
+            if (res.ok) setBranches(await res.json());
+        } catch {
+            // offline
+        }
+    }
+
     useEffect(() => {
         loadProducts();
         loadCustomers();
+        loadBranches();
         fetch("/api/auth/me")
             .then((res) => (res.ok ? res.json() : null))
             .then((data) => data && setBusinessName(data.businessName));
@@ -98,6 +110,7 @@ export default function PosPage() {
             tax,
             total,
             customerId: selectedCustomerId || null,
+            branchId: selectedBranchId || null,
             isCredit,
         };
 
@@ -240,6 +253,21 @@ export default function PosPage() {
                     </div>
 
                     <div className="mt-4 space-y-3 border-t border-border pt-4">
+                        {branches.length > 0 && (
+                            <Select value={selectedBranchId} onValueChange={setSelectedBranchId}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="No branch" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {branches.map((b) => (
+                                        <SelectItem key={b.id} value={b.id}>
+                                            {b.name}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        )}
+
                         <div className="flex gap-2">
                             <button
                                 onClick={() => setIsCredit(false)}
