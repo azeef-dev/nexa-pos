@@ -34,5 +34,22 @@ export async function GET(request) {
         .filter((s) => s.createdAt >= today)
         .reduce((sum, s) => sum + Number(s.total), 0);
 
-    return NextResponse.json({ todaysSales, totalCustomers });
+    // Last 7 calendar days, oldest first, zero-filled so a day with no sales
+    // still renders as a bar instead of a gap in the chart.
+    const salesByDay = [];
+    for (let i = 6; i >= 0; i--) {
+        const dayStart = new Date(today.getTime() - i * DAY_MS);
+        const dayEnd = new Date(dayStart.getTime() + DAY_MS);
+        const total = recentSales
+            .filter((s) => s.createdAt >= dayStart && s.createdAt < dayEnd)
+            .reduce((sum, s) => sum + Number(s.total), 0);
+
+        salesByDay.push({
+            date: dayStart.toISOString().slice(0, 10),
+            label: dayStart.toLocaleDateString("en-US", { weekday: "short", timeZone: "UTC" }),
+            total,
+        });
+    }
+
+    return NextResponse.json({ todaysSales, totalCustomers, salesByDay });
 }
