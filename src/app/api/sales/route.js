@@ -30,7 +30,11 @@ export async function GET(request) {
 
     const sales = await prisma.sale.findMany({
         where: { providerId: session.providerId },
-        include: { items: true, customer: { select: { name: true } } },
+        include: {
+            items: true,
+            customer: { select: { name: true } },
+            branch: { select: { name: true } },
+        },
         orderBy: { createdAt: "desc" },
     });
 
@@ -97,7 +101,11 @@ export async function POST(request) {
                         }),
                     },
                 },
-                include: { items: true, customer: { select: { name: true } } },
+                include: {
+                    items: true,
+                    customer: { select: { name: true } },
+                    branch: { select: { name: true } },
+                },
             });
 
             for (const item of items) {
