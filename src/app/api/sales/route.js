@@ -45,7 +45,14 @@ export async function POST(request) {
 
     const { data: body, error: bodyError } = validateBody(saleSchema, await request.json());
     if (bodyError) return bodyError;
-    const { items, customerId, isCredit } = body;
+    const { items, customerId, branchId, isCredit } = body;
+
+    if (branchId) {
+        const branch = await prisma.branch.findUnique({ where: { id: branchId } });
+        if (!branch || branch.providerId !== session.providerId) {
+            return NextResponse.json({ error: "Branch not found" }, { status: 404 });
+        }
+    }
 
     const requestedIds = [...new Set(items.map((i) => i.id))];
     const dbItems = await prisma.inventoryItem.findMany({
@@ -73,6 +80,7 @@ export async function POST(request) {
                 data: {
                     providerId: session.providerId,
                     customerId: customerId || null,
+                    branchId: branchId || null,
                     isCredit: !!isCredit,
                     subtotal: computedSubtotal,
                     tax: computedTax,
