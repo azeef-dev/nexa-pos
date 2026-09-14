@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DollarSign, Users, Star } from "lucide-react";
+import SalesTrendChart from "@/components/shared/SalesTrendChart";
 
 export default function ProviderHomePage() {
-    const [report, setReport] = useState({ todaysSales: 0, totalCustomers: 0, bestSeller: "—" });
+    const [report, setReport] = useState({ todaysSales: 0, totalCustomers: 0, bestSeller: "—", salesByDay: [] });
 
     useEffect(() => {
         fetch("/api/reports/dashboard")
@@ -37,6 +38,15 @@ export default function ProviderHomePage() {
                     </Card>
                 ))}
             </div>
+
+            <Card className="mt-4 border-border/60">
+                <CardHeader>
+                    <CardTitle className="text-sm text-muted-foreground">Sales — last 7 days</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <SalesTrendChart data={report.salesByDay} />
+                </CardContent>
+            </Card>
         </div>
     );
 }
