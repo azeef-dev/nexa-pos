@@ -104,6 +104,12 @@ export default function CustomersPage() {
     }
 
     async function onPaymentSubmit(data) {
+        const customer = customers.find((c) => c.id === openCustomerId);
+        if (customer && data.amount > customer.creditBalance) {
+            toast.error(`Payment cannot exceed the outstanding balance of Rs. ${customer.creditBalance}`);
+            return;
+        }
+
         const res = await fetch(`/api/customers/${openCustomerId}/credit`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
@@ -234,7 +240,10 @@ export default function CustomersPage() {
                                                         </div>
                                                     </div>
                                                     <div>
-                                                        <p className="mb-2 text-xs font-medium text-muted-foreground">Record Payment</p>
+                                                        <p className="mb-2 text-xs font-medium text-muted-foreground">
+                                                            Record Payment{" "}
+                                                            <span className="text-foreground">(owes Rs. {c.creditBalance})</span>
+                                                        </p>
                                                         <form onSubmit={handlePaymentSubmit(onPaymentSubmit)} className="flex flex-col gap-2">
                                                             <Input type="number" step="0.01" placeholder="Amount (Rs.)" {...registerPayment("amount")} />
                                                             {paymentErrors.amount && (
