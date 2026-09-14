@@ -4,6 +4,8 @@ import { getSession } from "@/lib/auth";
 import { creditPaymentSchema } from "@/lib/schemas";
 import { validateBody } from "@/lib/validate-request";
 
+class OverpaymentError extends Error {}
+
 export async function GET(request, { params }) {
     const session = await getSession(request);
     if (!session || session.role !== "PROVIDER") {
@@ -48,15 +50,31 @@ export async function POST(request, { params }) {
         );
     }
 
-    const [, transaction] = await prisma.$transaction([
-        prisma.customer.update({
-            where: { id },
-            data: { creditBalance: { decrement: amount } },
-        }),
-        prisma.creditTransaction.create({
-            data: { customerId: id, type: "PAYMENT", amount, note: note || null },
-        }),
-    ]);
+    let transaction;
+    try {
+        transaction = await prisma.$transaction(async (tx) => {
+            // Conditional decrement: only succeeds if the balance is still
+            // >= amount at write time, so two simultaneous payments on the
+            // same tab can't both pass the check above and overdraw it.
+            const { count } = await tx.customer.updateMany({
+                where: { id, creditBalance: { gte: amount } },
+                data: { creditBalance: { decrement: amount } },
+            });
+
+            if (count === 0) {
+                throw new OverpaymentError();
+            }
+
+            return tx.creditTransaction.create({
+                data: { customerId: id, type: "PAYMENT", amount, note: note || null },
+            });
+        });
+    } catch (err) {
+        if (err instanceof OverpaymentError) {
+            return NextResponse.json({ error: "Payment cannot exceed the outstanding balance" }, { status: 409 });
+        }
+        throw err;
+    }
 
     return NextResponse.json({ ...transaction, amount: Number(transaction.amount) });
 }
