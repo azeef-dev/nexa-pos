@@ -41,6 +41,13 @@ export async function POST(request, { params }) {
         return NextResponse.json({ error: "Customer not found" }, { status: 404 });
     }
 
+    if (amount > Number(customer.creditBalance)) {
+        return NextResponse.json(
+            { error: `Payment cannot exceed the outstanding balance of Rs. ${Number(customer.creditBalance).toFixed(2)}` },
+            { status: 409 }
+        );
+    }
+
     const [, transaction] = await prisma.$transaction([
         prisma.customer.update({
             where: { id },
