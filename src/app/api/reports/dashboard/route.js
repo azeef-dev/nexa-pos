@@ -51,5 +51,17 @@ export async function GET(request) {
         });
     }
 
-    return NextResponse.json({ todaysSales, totalCustomers, salesByDay });
+    const qtyByProduct = new Map();
+    for (const sale of recentSales) {
+        for (const item of sale.items) {
+            qtyByProduct.set(item.name, (qtyByProduct.get(item.name) || 0) + item.qty);
+        }
+    }
+    const topProducts = [...qtyByProduct.entries()]
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 5)
+        .map(([name, qty]) => ({ name, qty }));
+    const bestSeller = topProducts[0]?.name || "—";
+
+    return NextResponse.json({ todaysSales, totalCustomers, salesByDay, topProducts, bestSeller });
 }
