@@ -52,30 +52,15 @@ model Provider {
 
   staff        Account[]      @relation("StaffAccounts")
 
-  branches     Branch[]
   inventory    InventoryItem[]
   customers    Customer[]
   sales        Sale[]
-}
-
-model Branch {
-  id         String   @id @default(cuid())
-  provider   Provider @relation(fields: [providerId], references: [id])
-  providerId String
-  name       String
-  address    String?
-  createdAt  DateTime @default(now())
-
-  sales      Sale[]
-  inventory  InventoryItem[]
 }
 
 model InventoryItem {
   id         String     @id @default(cuid())
   provider   Provider   @relation(fields: [providerId], references: [id])
   providerId String
-  branch     Branch?    @relation(fields: [branchId], references: [id])
-  branchId   String?
   name       String
   category   String
   price      Decimal
@@ -115,8 +100,6 @@ model Sale {
   id         String     @id @default(cuid())
   provider   Provider   @relation(fields: [providerId], references: [id])
   providerId String
-  branch     Branch?    @relation(fields: [branchId], references: [id])
-  branchId   String?
   customer   Customer?  @relation(fields: [customerId], references: [id])
   customerId String?
   isCredit   Boolean    @default(false)
