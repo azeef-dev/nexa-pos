@@ -22,6 +22,7 @@ import { inventoryItemSchema as itemSchema } from "@/lib/schemas";
 export default function InventoryPage() {
     const [showForm, setShowForm] = useState(false);
     const [items, setItems] = useState([]);
+    const [branches, setBranches] = useState([]);
     const [loading, setLoading] = useState(true);
     const [editingId, setEditingId] = useState(null);
 
@@ -43,8 +44,14 @@ export default function InventoryPage() {
         setLoading(false);
     }
 
+    async function loadBranches() {
+        const res = await fetch("/api/branches");
+        if (res.ok) setBranches(await res.json());
+    }
+
     useEffect(() => {
         loadItems();
+        loadBranches();
     }, []);
 
     async function onSubmit(data) {
@@ -52,7 +59,7 @@ export default function InventoryPage() {
         const res = await fetch(isEditing ? `/api/inventory/${editingId}` : "/api/inventory", {
             method: isEditing ? "PATCH" : "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(data),
+            body: JSON.stringify({ ...data, branchId: data.branchId || null }),
         });
         const result = await res.json();
 
@@ -68,14 +75,20 @@ export default function InventoryPage() {
 
     function startEdit(item) {
         setEditingId(item.id);
-        reset({ name: item.name, category: item.category, price: item.price, stock: item.stock });
+        reset({
+            name: item.name,
+            category: item.category,
+            price: item.price,
+            stock: item.stock,
+            branchId: item.branchId || "",
+        });
         setShowForm(true);
     }
 
     function cancelForm() {
         setEditingId(null);
         setShowForm(false);
-        reset({ name: "", category: CATEGORIES[1], price: "", stock: "" });
+        reset({ name: "", category: CATEGORIES[1], price: "", stock: "", branchId: "" });
     }
 
     async function removeItem(id) {
@@ -109,7 +122,7 @@ export default function InventoryPage() {
                         <p className="mb-4 text-sm font-medium text-foreground">
                             {editingId ? "Edit Item" : "New Item"}
                         </p>
-                        <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 sm:grid-cols-4">
+                        <form onSubmit={handleSubmit(onSubmit)} className="grid gap-4 sm:grid-cols-5">
                             <div className="flex flex-col gap-1.5">
                                 <Label htmlFor="name">Item Name</Label>
                                 <Input id="name" placeholder="e.g. Fanta" {...register("name")} />
@@ -146,7 +159,29 @@ export default function InventoryPage() {
                                 <Input id="stock" type="number" placeholder="0" {...register("stock")} />
                                 {errors.stock && <p className="text-xs text-destructive">{errors.stock.message}</p>}
                             </div>
-                            <div className="sm:col-span-4">
+                            <div className="flex flex-col gap-1.5">
+                                <Label htmlFor="branchId">Branch (optional)</Label>
+                                <Controller
+                                    name="branchId"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <Select value={field.value || "none"} onValueChange={(v) => field.onChange(v === "none" ? "" : v)}>
+                                            <SelectTrigger id="branchId">
+                                                <SelectValue placeholder="No branch" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="none">No branch</SelectItem>
+                                                {branches.map((b) => (
+                                                    <SelectItem key={b.id} value={b.id}>
+                                                        {b.name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    )}
+                                />
+                            </div>
+                            <div className="sm:col-span-5">
                                 <Button type="submit" disabled={isSubmitting}>
                                     {isSubmitting ? "Saving..." : editingId ? "Update Item" : "Save Item"}
                                 </Button>
@@ -165,6 +200,7 @@ export default function InventoryPage() {
                                 <th className="px-4 py-3 font-medium">Category</th>
                                 <th className="px-4 py-3 font-medium">Price</th>
                                 <th className="px-4 py-3 font-medium">Stock</th>
+                                <th className="px-4 py-3 font-medium">Branch</th>
                                 <th className="px-4 py-3 font-medium">Status</th>
                                 <th className="px-4 py-3"></th>
                             </tr>
@@ -176,6 +212,7 @@ export default function InventoryPage() {
                                     <td className="px-4 py-3 text-muted-foreground">{item.category}</td>
                                     <td className="px-4 py-3 text-foreground">Rs. {item.price}</td>
                                     <td className="px-4 py-3 text-foreground">{item.stock}</td>
+                                    <td className="px-4 py-3 text-muted-foreground">{item.branch?.name || "—"}</td>
                                     <td className="px-4 py-3">
                                         <span
                                             className={
@@ -201,14 +238,14 @@ export default function InventoryPage() {
                             ))}
                             {!loading && items.length === 0 && (
                                 <tr>
-                                    <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                                    <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
                                         No items added yet.
                                     </td>
                                 </tr>
                             )}
                             {loading && (
                                 <tr>
-                                    <td colSpan={6} className="px-4 py-8 text-center text-muted-foreground">
+                                    <td colSpan={7} className="px-4 py-8 text-center text-muted-foreground">
                                         Loading...
                                     </td>
                                 </tr>
