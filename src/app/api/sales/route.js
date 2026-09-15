@@ -1,13 +1,24 @@
 import { NextResponse } from "next/server";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { getSession } from "@/lib/auth";
-import { TAX_RATE } from "@/lib/tax";
-import { saleSchema } from "@/lib/schemas";
-import { validateBody } from "@/lib/validate-request";
+
+const TAX_RATE = 0.05;
+
+const saleItemSchema = z.object({
+    id: z.string().min(1),
+    qty: z.coerce.number().int().positive(),
+});
+
+const saleSchema = z.object({
+    items: z.array(saleItemSchema).min(1, "Cart is empty"),
+    customerId: z.string().nullable().optional(),
+    isCredit: z.boolean().optional(),
+});
 
 class InsufficientStockError extends Error {
     constructor(itemName) {
-        super(`Not enough stock for "${itemName}"`);
+        super(`Not enough stock for ${itemName}`);
         this.name = "InsufficientStockError";
     }
 }
@@ -30,11 +41,7 @@ export async function GET(request) {
 
     const sales = await prisma.sale.findMany({
         where: { providerId: session.providerId },
-        include: {
-            items: true,
-            customer: { select: { name: true } },
-            branch: { select: { name: true } },
-        },
+        include: { items: true, customer: { select: { name: true } } },
         orderBy: { createdAt: "desc" },
     });
 
@@ -47,100 +54,87 @@ export async function POST(request) {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { data: body, error: bodyError } = validateBody(saleSchema, await request.json());
-    if (bodyError) return bodyError;
-    const { items, customerId, branchId, isCredit } = body;
-
-    if (branchId) {
-        const branch = await prisma.branch.findUnique({ where: { id: branchId } });
-        if (!branch || branch.providerId !== session.providerId) {
-            return NextResponse.json({ error: "Branch not found" }, { status: 404 });
-        }
+    const body = await request.json();
+    const parsed = saleSchema.safeParse(body);
+    if (!parsed.success) {
+        return NextResponse.json({ error: parsed.error.issues[0]?.message || "Invalid data" }, { status: 400 });
     }
 
-    const requestedIds = [...new Set(items.map((i) => i.id))];
+    const { items, customerId, isCredit } = parsed.data;
+
+    if (isCredit && !customerId) {
+        return NextResponse.json({ error: "Select a customer for a credit sale" }, { status: 400 });
+    }
+
+    const itemIds = items.map((i) => i.id);
     const dbItems = await prisma.inventoryItem.findMany({
-        where: { id: { in: requestedIds }, providerId: session.providerId, isActive: true },
+        where: { id: { in: itemIds }, providerId: session.providerId, isActive: true },
     });
-    const dbItemsById = new Map(dbItems.map((i) => [i.id, i]));
 
-    if (dbItems.length !== requestedIds.length) {
-        return NextResponse.json(
-            { error: "One or more items in the cart are no longer available" },
-            { status: 404 }
-        );
+    if (dbItems.length !== itemIds.length) {
+        return NextResponse.json({ error: "One or more items in the cart are no longer available" }, { status: 404 });
     }
 
-    // Recomputed from the DB, not trusted from the client — a tampered
-    // subtotal/tax/total in the request body has no effect on what's charged.
-    const computedSubtotal = items.reduce((sum, item) => sum + Number(dbItemsById.get(item.id).price) * item.qty, 0);
-    const computedTax = computedSubtotal * TAX_RATE;
-    const computedTotal = computedSubtotal + computedTax;
+    const priceMap = Object.fromEntries(dbItems.map((i) => [i.id, i]));
+    const subtotal = items.reduce((sum, item) => sum + Number(priceMap[item.id].price) * item.qty, 0);
+    const tax = subtotal * TAX_RATE;
+    const total = subtotal + tax;
 
-    let sale;
     try {
-        sale = await prisma.$transaction(async (tx) => {
-            const newSale = await tx.sale.create({
-                data: {
-                    providerId: session.providerId,
-                    customerId: customerId || null,
-                    branchId: branchId || null,
-                    isCredit: !!isCredit,
-                    subtotal: computedSubtotal,
-                    tax: computedTax,
-                    total: computedTotal,
-                    items: {
-                        create: items.map((item) => {
-                            const dbItem = dbItemsById.get(item.id);
-                            return {
-                                inventoryItemId: dbItem.id,
-                                name: dbItem.name,
-                                price: dbItem.price,
+        const sale = await prisma.$transaction(
+            async (tx) => {
+                const newSale = await tx.sale.create({
+                    data: {
+                        providerId: session.providerId,
+                        customerId: customerId || null,
+                        isCredit: !!isCredit,
+                        subtotal,
+                        tax,
+                        total,
+                        items: {
+                            create: items.map((item) => ({
+                                inventoryItemId: item.id,
+                                name: priceMap[item.id].name,
+                                price: priceMap[item.id].price,
                                 qty: item.qty,
-                            };
-                        }),
+                            })),
+                        },
                     },
-                },
-                include: {
-                    items: true,
-                    customer: { select: { name: true } },
-                    branch: { select: { name: true } },
-                },
-            });
-
-            for (const item of items) {
-                // Conditional decrement: only succeeds if enough stock is still
-                // there at write time, so two simultaneous sales can't both pass
-                // a "stock >= qty" check and drive stock negative between them.
-                const { count } = await tx.inventoryItem.updateMany({
-                    where: { id: item.id, stock: { gte: item.qty } },
-                    data: { stock: { decrement: item.qty } },
+                    include: { items: true, customer: { select: { name: true } } },
                 });
 
-                if (count === 0) {
-                    const dbItem = dbItemsById.get(item.id);
-                    throw new InsufficientStockError(dbItem.name);
+                await Promise.all(
+                    items.map(async (item) => {
+                        const result = await tx.inventoryItem.updateMany({
+                            where: { id: item.id, stock: { gte: item.qty } },
+                            data: { stock: { decrement: item.qty } },
+                        });
+                        if (result.count === 0) {
+                            throw new InsufficientStockError(priceMap[item.id].name);
+                        }
+                    })
+                );
+
+                if (isCredit && customerId) {
+                    await tx.customer.update({
+                        where: { id: customerId },
+                        data: { creditBalance: { increment: total } },
+                    });
+                    await tx.creditTransaction.create({
+                        data: { customerId, type: "CHARGE", amount: total, note: `Sale #${newSale.id.slice(-6)}` },
+                    });
                 }
-            }
 
-            if (isCredit && customerId) {
-                await tx.customer.update({
-                    where: { id: customerId },
-                    data: { creditBalance: { increment: computedTotal } },
-                });
-                await tx.creditTransaction.create({
-                    data: { customerId, type: "CHARGE", amount: computedTotal, note: `Sale #${newSale.id.slice(-6)}` },
-                });
-            }
+                return newSale;
+            },
+            { timeout: 15000 }
+        );
 
-            return newSale;
-        });
-    } catch (err) {
-        if (err instanceof InsufficientStockError) {
-            return NextResponse.json({ error: err.message }, { status: 409 });
+        return NextResponse.json(serialize(sale));
+    } catch (error) {
+        if (error instanceof InsufficientStockError) {
+            return NextResponse.json({ error: error.message }, { status: 409 });
         }
-        throw err;
+        throw error;
     }
-
-    return NextResponse.json(serialize(sale));
 }
