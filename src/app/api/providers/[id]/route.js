@@ -41,24 +41,14 @@ export async function DELETE(request, { params }) {
         prisma.customer.count({ where: { providerId: id } }),
         prisma.inventoryItem.count({ where: { providerId: id } }),
     ]);
-    const hasHistory = saleCount > 0 || customerCount > 0 || inventoryCount > 0;
 
-    if (hasHistory) {
-        // Hard-deleting would violate FK constraints on sales/customers/
-        // inventory that still reference this provider — suspend instead,
-        // same "archive rather than lose history" pattern used for
-        // individual inventory items and customers.
+    if (saleCount > 0 || customerCount > 0 || inventoryCount > 0) {
         await prisma.provider.update({ where: { id }, data: { status: "SUSPENDED" } });
         return NextResponse.json({ success: true, archived: true });
     }
 
-    // No sales/customers/inventory reference this provider, so none of its
-    // branches can be referenced either — safe to clear those and hard-delete.
-    await prisma.$transaction([
-        prisma.branch.deleteMany({ where: { providerId: id } }),
-        prisma.provider.delete({ where: { id } }),
-        prisma.account.delete({ where: { id: provider.accountId } }),
-    ]);
+    await prisma.provider.delete({ where: { id } });
+    await prisma.account.delete({ where: { id: provider.accountId } });
 
     return NextResponse.json({ success: true, archived: false });
 }
