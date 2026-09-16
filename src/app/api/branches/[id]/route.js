@@ -42,8 +42,6 @@ export async function DELETE(request, { params }) {
         return NextResponse.json({ error: "Branch not found" }, { status: 404 });
     }
 
-    // branchId is optional on both models — unassign rather than block the
-    // delete, so removing a branch never destroys inventory or sales history.
     await prisma.$transaction([
         prisma.inventoryItem.updateMany({ where: { branchId: id }, data: { branchId: null } }),
         prisma.sale.updateMany({ where: { branchId: id }, data: { branchId: null } }),
