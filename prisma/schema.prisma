@@ -27,6 +27,9 @@ model Account {
   role         Role
   email        String   @unique
   passwordHash String
+  name         String?
+  staffOfId    String?
+  staffOf      Provider? @relation("StaffAccounts", fields: [staffOfId], references: [id])
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
@@ -34,24 +37,45 @@ model Account {
 }
 
 model Provider {
-  id           String         @id @default(cuid())
-  account      Account        @relation(fields: [accountId], references: [id])
-  accountId    String         @unique
-  businessName String
-  ownerName    String
-  status       ProviderStatus @default(ACTIVE)
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
+  id                    String         @id @default(cuid())
+  account               Account        @relation(fields: [accountId], references: [id])
+  accountId             String         @unique
+  businessName          String
+  ownerName             String
+  status                ProviderStatus @default(ACTIVE)
+  // The WhatsApp Cloud API "Phone Number ID" this business has connected —
+  // one Meta app/access token serves every provider on the platform, and
+  // an incoming webhook is routed to the right provider by this field.
+  whatsappPhoneNumberId String?        @unique
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
 
-  inventory    InventoryItem[]
-  customers    Customer[]
-  sales        Sale[]
+  staffAccounts    Account[]         @relation("StaffAccounts")
+  inventory        InventoryItem[]
+  customers        Customer[]
+  sales            Sale[]
+  branches         Branch[]
+  whatsAppSessions WhatsAppSession[]
+}
+
+model Branch {
+  id         String   @id @default(cuid())
+  provider   Provider @relation(fields: [providerId], references: [id])
+  providerId String
+  name       String
+  address    String?
+  createdAt  DateTime @default(now())
+
+  inventory InventoryItem[]
+  sales     Sale[]
 }
 
 model InventoryItem {
   id         String     @id @default(cuid())
   provider   Provider   @relation(fields: [providerId], references: [id])
   providerId String
+  branch     Branch?    @relation(fields: [branchId], references: [id])
+  branchId   String?
   name       String
   category   String
   price      Decimal
@@ -91,6 +115,8 @@ model Sale {
   id         String     @id @default(cuid())
   provider   Provider   @relation(fields: [providerId], references: [id])
   providerId String
+  branch     Branch?    @relation(fields: [branchId], references: [id])
+  branchId   String?
   customer   Customer?  @relation(fields: [customerId], references: [id])
   customerId String?
   isCredit   Boolean    @default(false)
@@ -111,4 +137,20 @@ model SaleItem {
   name            String
   price           Decimal
   qty             Int
+}
+
+// One row per (provider, customer phone number) — holds the in-progress cart
+// and recent chat history for the WhatsApp order assistant, since each
+// incoming message is a separate, stateless webhook request.
+model WhatsAppSession {
+  id            String   @id @default(cuid())
+  provider      Provider @relation(fields: [providerId], references: [id])
+  providerId    String
+  customerPhone String
+  cart          Json     @default("[]")
+  history       Json     @default("[]")
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([providerId, customerPhone])
 }
