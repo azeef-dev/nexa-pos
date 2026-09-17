@@ -94,14 +94,21 @@ export default function CustomersPage() {
 
     async function sendReminder(id) {
         const res = await fetch(`/api/customers/${id}/credit/remind`, { method: "POST" });
-        const result = await res.json();
+        let result = {};
+        try {
+            result = await res.json();
+        } catch {
+            // Server errored before it could send a JSON body — show a
+            // generic message instead of crashing on the empty response.
+        }
+
         if (!res.ok) {
-            toast.error(result.error || "Failed to send reminder");
+            toast.error(result.error || "Failed to send reminder — check the server logs");
             return;
         }
         toast.success("Reminder sent on WhatsApp");
     }
-
+    
     async function toggleCreditTab(customerId) {
         if (openCustomerId === customerId) {
             setOpenCustomerId(null);
