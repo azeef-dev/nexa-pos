@@ -105,3 +105,11 @@ export const providerSchema = z.object({
         .min(6, "Password must be at least 6 characters")
         .regex(/^\S+$/, "Password cannot contain spaces"),
 });
+
+export const whatsappSettingsSchema = z.object({
+    whatsappPhoneNumberId: z
+        .string({ error: "Enter your WhatsApp Phone Number ID" })
+        .trim()
+        .min(1, "Enter your WhatsApp Phone Number ID")
+        .regex(/^\d+$/, "Should be numbers only"),
+});
