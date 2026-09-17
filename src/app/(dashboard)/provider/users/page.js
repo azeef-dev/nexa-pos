@@ -4,7 +4,7 @@ import { Fragment, useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import toast from "react-hot-toast";
-import { Plus, Trash2, Wallet, Pencil } from "lucide-react";
+import { Plus, Trash2, Wallet, Pencil, MessageCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -90,6 +90,16 @@ export default function CustomersPage() {
         } else {
             toast.error("Failed to remove customer");
         }
+    }
+
+    async function sendReminder(id) {
+        const res = await fetch(`/api/customers/${id}/credit/remind`, { method: "POST" });
+        const result = await res.json();
+        if (!res.ok) {
+            toast.error(result.error || "Failed to send reminder");
+            return;
+        }
+        toast.success("Reminder sent on WhatsApp");
     }
 
     async function toggleCreditTab(customerId) {
@@ -204,6 +214,15 @@ export default function CustomersPage() {
                                         </td>
                                         <td className="px-4 py-3">
                                             <div className="flex items-center justify-end gap-2">
+                                                {c.creditBalance > 0 && (
+                                                    <button
+                                                        onClick={() => sendReminder(c.id)}
+                                                        title="Send WhatsApp Reminder"
+                                                        className="text-muted-foreground hover:text-primary"
+                                                    >
+                                                        <MessageCircle className="h-4 w-4" />
+                                                    </button>
+                                                )}
                                                 <button onClick={() => toggleCreditTab(c.id)} title="Credit Tab" className="text-muted-foreground hover:text-primary">
                                                     <Wallet className="h-4 w-4" />
                                                 </button>
