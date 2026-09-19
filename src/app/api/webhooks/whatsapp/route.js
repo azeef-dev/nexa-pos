@@ -85,7 +85,6 @@ export async function POST(request) {
 
     const reply = finalMessage.content.find((b) => b.type === "text")?.text || "Sorry, I didn't catch that.";
 
-    // Keep the stored transcript short — this backs a chat window, not a full log.
     const updatedHistory = [...messages, { role: "assistant", content: reply }].slice(-20);
 
     await prisma.whatsAppSession.update({
