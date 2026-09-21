@@ -1,11 +1,9 @@
 import { NextResponse } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
 import { getSession } from "@/lib/auth";
 import { chatSchema } from "@/lib/schemas";
 import { validateBody } from "@/lib/validate-request";
 import { buildTools } from "@/lib/chat-tools";
-
-const client = new Anthropic();
+import { runToolLoop } from "@/lib/groq";
 
 const SYSTEM_PROMPT = `You are the business assistant built into NexaPOS, a point-of-sale app.
 You answer questions about the current provider's own store — sales, inventory, customers, and credit tabs — using the tools available to you. Always call a tool to get real numbers; never guess or make up figures.
@@ -24,33 +22,13 @@ export async function POST(request) {
 
     const tools = buildTools(session.providerId);
 
-    let finalMessage;
+    let reply;
     try {
-        finalMessage = await client.beta.messages.toolRunner({
-            model: "claude-opus-5",
-            max_tokens: 4096,
-            output_config: { effort: "low" },
-            system: SYSTEM_PROMPT,
-            tools,
-            messages,
-        });
+        reply = await runToolLoop({ system: SYSTEM_PROMPT, messages, tools });
     } catch (err) {
-        if (err instanceof Anthropic.AuthenticationError) {
-            return NextResponse.json({ error: "Assistant is misconfigured (invalid API key)." }, { status: 500 });
-        }
-        if (err instanceof Anthropic.RateLimitError) {
-            return NextResponse.json({ error: "Assistant is busy right now — try again in a moment." }, { status: 429 });
-        }
-        if (err instanceof Anthropic.APIError) {
-            // Covers billing/credit and other invalid-request cases from the
-            // Anthropic account itself — safe to surface, it's operational
-            // detail the shop owner can't fix but the app operator needs to see.
-            return NextResponse.json({ error: `Assistant unavailable: ${err.message}` }, { status: 502 });
-        }
-        throw err;
+        console.error("Business assistant error:", err);
+        return NextResponse.json({ error: "Assistant is temporarily unavailable" }, { status: 502 });
     }
-
-    const reply = finalMessage.content.find((b) => b.type === "text")?.text || "";
 
     return NextResponse.json({ reply });
 }
