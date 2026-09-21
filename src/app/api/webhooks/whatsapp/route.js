@@ -1,10 +1,8 @@
 import { NextResponse } from "next/server";
-import Anthropic from "@anthropic-ai/sdk";
 import { prisma } from "@/lib/prisma";
 import { sendWhatsAppText, verifyWebhookChallenge } from "@/lib/whatsapp";
 import { buildOrderTools } from "@/lib/whatsapp-order-tools";
-
-const client = new Anthropic();
+import { runToolLoop } from "@/lib/groq";
 
 const SYSTEM_PROMPT = `You are the ordering assistant for a shop, talking directly to a customer on WhatsApp.
 Help them browse products, build an order, and check out. Always use your tools to look up real
@@ -13,7 +11,6 @@ customer's confirmation before calling checkout. Keep replies short and friendly
 WhatsApp chat, not a report. Reply in whichever language the customer writes in (Urdu, English or
 Roman Urdu).`;
 
-// Meta calls this once when you save the webhook URL in the App Dashboard.
 export async function GET(request) {
     const challenge = verifyWebhookChallenge(request.nextUrl.searchParams);
     if (challenge === null) {
@@ -25,17 +22,14 @@ export async function GET(request) {
 export async function POST(request) {
     const body = await request.json();
 
-    // Meta's payload can technically batch several changes; in practice each
-    // webhook call carries exactly one incoming message.
     const change = body?.entry?.[0]?.changes?.[0]?.value;
     const message = change?.messages?.[0];
     if (!message || message.type !== "text") {
-        // Ignore delivery/read-receipt callbacks and non-text messages for now.
         return NextResponse.json({ success: true });
     }
 
     const phoneNumberId = change.metadata?.phone_number_id;
-    const from = message.from; // customer's WhatsApp number, digits only
+    const from = message.from;
     const text = message.text?.body || "";
 
     const provider = await prisma.provider.findUnique({ where: { whatsappPhoneNumberId: phoneNumberId } });
@@ -44,9 +38,6 @@ export async function POST(request) {
         return NextResponse.json({ success: true });
     }
 
-    // Matching by the last 10 digits since Customer.phone is free-typed text
-    // rather than normalized E.164 — good enough for one country's numbers,
-    // worth tightening if this goes beyond a course project.
     const customer = await prisma.customer.findFirst({
         where: { providerId: provider.id, phone: { contains: from.slice(-10) } },
     });
@@ -67,23 +58,14 @@ export async function POST(request) {
     const messages = [...history, { role: "user", content: text }];
     const tools = buildOrderTools(session);
 
-    let finalMessage;
+    let reply;
     try {
-        finalMessage = await client.beta.messages.toolRunner({
-            model: "claude-opus-5",
-            max_tokens: 1024,
-            output_config: { effort: "low" },
-            system: SYSTEM_PROMPT,
-            tools,
-            messages,
-        });
+        reply = await runToolLoop({ system: SYSTEM_PROMPT, messages, tools });
     } catch (err) {
         console.error("WhatsApp order assistant error:", err);
         await sendWhatsAppText(phoneNumberId, from, "Sorry, something went wrong on our end — please try again in a moment.");
         return NextResponse.json({ success: true });
     }
-
-    const reply = finalMessage.content.find((b) => b.type === "text")?.text || "Sorry, I didn't catch that.";
 
     const updatedHistory = [...messages, { role: "assistant", content: reply }].slice(-20);
 
@@ -92,7 +74,7 @@ export async function POST(request) {
         data: { cart: session.cart, history: updatedHistory },
     });
 
-    await sendWhatsAppText(phoneNumberId, from, reply);
+    await sendWhatsAppText(phoneNumberId, from, reply || "Sorry, I didn't catch that.");
 
     return NextResponse.json({ success: true });
 }
