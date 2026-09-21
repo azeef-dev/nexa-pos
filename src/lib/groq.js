@@ -2,10 +2,11 @@ import Groq from "groq-sdk";
 
 export const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-// llama-3.3-70b-versatile is Groq's general-purpose production model with
-// solid tool-calling support — good balance of quality and speed for both
-// assistants in this app.
-export const GROQ_MODEL = "llama-3.3-70b-versatile";
+// llama-3.1-8b-instant — fast and broadly available on every Groq account
+// tier, with tool-calling support. If your console shows a bigger model
+// (e.g. llama-3.3-70b-versatile, openai/gpt-oss-120b) also marked "Tool use",
+// feel free to swap it in here.
+export const GROQ_MODEL = "llama-3.1-8b-instant";
 
 const MAX_TURNS = 6;
 
