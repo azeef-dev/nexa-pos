@@ -2,11 +2,10 @@ import Groq from "groq-sdk";
 
 export const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-// llama-3.1-8b-instant — fast and broadly available on every Groq account
-// tier, with tool-calling support. If your console shows a bigger model
-// (e.g. llama-3.3-70b-versatile, openai/gpt-oss-120b) also marked "Tool use",
-// feel free to swap it in here.
-export const GROQ_MODEL = "llama-3.1-8b-instant";
+// openai/gpt-oss-20b — one of the chat/tool-calling models actually
+// available on this Groq account. If you want heavier reasoning at the cost
+// of speed, openai/gpt-oss-120b is also available and works the same way.
+export const GROQ_MODEL = "openai/gpt-oss-20b";
 
 const MAX_TURNS = 6;
 
