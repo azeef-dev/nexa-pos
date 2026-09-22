@@ -1,10 +1,3 @@
-// Tools for the WhatsApp order assistant (api/webhooks/whatsapp/route.js).
-// Same pattern as lib/chat-tools.js (every tool closes over providerId so the
-// model can't be talked into touching another business's data), plus each
-// tool reads/writes `session.cart` in place so an order survives across
-// separate webhook requests — every incoming WhatsApp message is its own
-// stateless HTTP call, so the caller persists session.cart afterward.
-
 import { prisma } from "@/lib/prisma";
 import { TAX_RATE } from "@/lib/tax";
 import { createSale, serializeSale, InsufficientStockError, ItemsUnavailableError } from "@/lib/create-sale";
