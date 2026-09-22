@@ -2,17 +2,10 @@ import Groq from "groq-sdk";
 
 export const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-// openai/gpt-oss-20b — one of the chat/tool-calling models actually
-// available on this Groq account. If you want heavier reasoning at the cost
-// of speed, openai/gpt-oss-120b is also available and works the same way.
 export const GROQ_MODEL = "openai/gpt-oss-20b";
 
 const MAX_TURNS = 6;
 
-// Groq's chat.completions API is OpenAI-compatible and has no equivalent to
-// Anthropic's toolRunner helper, so this hand-rolls the same loop: call the
-// model, run whichever tools it asks for, feed the results back in, repeat
-// until it answers in plain text (or MAX_TURNS is hit as a safety valve).
 export async function runToolLoop({ system, messages, tools }) {
     const toolMap = Object.fromEntries(tools.map((t) => [t.name, t]));
     const apiTools = tools.map((t) => ({
