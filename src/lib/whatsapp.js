@@ -37,7 +37,6 @@ async function callGraphApi(phoneNumberId, body) {
     return data;
 }
 
-// Meta wants digits only — no "+", spaces, or leading zeros (E.164 without the plus).
 export function normalizePhone(phone) {
     const digits = String(phone).replace(/\D/g, "");
     if (digits.length === 11 && digits.startsWith("0")) {
@@ -46,10 +45,6 @@ export function normalizePhone(phone) {
     return digits;
 }
 
-// Free-form text. Only deliverable inside WhatsApp's 24-hour customer service
-// window (i.e. the customer messaged you within the last 24h) — that's a
-// platform rule, not something this code enforces. Use sendWhatsAppTemplate
-// for anything business-initiated outside that window.
 export async function sendWhatsAppText(phoneNumberId, to, body) {
     return callGraphApi(phoneNumberId, {
         messaging_product: "whatsapp",
