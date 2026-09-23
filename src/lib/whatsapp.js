@@ -39,7 +39,11 @@ async function callGraphApi(phoneNumberId, body) {
 
 // Meta wants digits only — no "+", spaces, or leading zeros (E.164 without the plus).
 export function normalizePhone(phone) {
-    return String(phone).replace(/\D/g, "");
+    const digits = String(phone).replace(/\D/g, "");
+    if (digits.length === 11 && digits.startsWith("0")) {
+        return "92" + digits.slice(1);
+    }
+    return digits;
 }
 
 // Free-form text. Only deliverable inside WhatsApp's 24-hour customer service
