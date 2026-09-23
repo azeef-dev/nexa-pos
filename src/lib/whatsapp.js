@@ -1,9 +1,3 @@
-// Thin wrapper around Meta's WhatsApp Cloud API. One access token for the
-// whole NexaPOS platform (a System User token from your Meta app), while
-// each Provider connects their own registered number via
-// Provider.whatsappPhoneNumberId — that's what lets a single webhook route
-// messages to the right business.
-
 const GRAPH_VERSION = process.env.WHATSAPP_GRAPH_VERSION || "v21.0";
 const ACCESS_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN;
 
