@@ -49,8 +49,6 @@ export async function sendWhatsAppText(phoneNumberId, to, body) {
     });
 }
 
-// Pre-approved template message (create + get these approved in Meta Business
-// Manager first). `params` fills the template's {{1}}, {{2}}... in order.
 export async function sendWhatsAppTemplate(phoneNumberId, to, templateName, params = [], { languageCode = "en_US", category } = {}) {
     const body = {
         messaging_product: "whatsapp",
